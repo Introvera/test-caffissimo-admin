@@ -12,8 +12,8 @@ import {
   XCircle,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -293,7 +293,13 @@ export default function DashboardPage() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesTrendData}>
+                <AreaChart data={salesTrendData}>
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#099699" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#099699" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="date" className="text-xs" />
                   <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
@@ -307,14 +313,15 @@ export default function DashboardPage() {
                     }}
                     labelStyle={{ color: "#9B9B9B" }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="total"
                     stroke="#099699"
                     strokeWidth={2}
+                    fill="url(#salesGradient)"
                     dot={false}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
