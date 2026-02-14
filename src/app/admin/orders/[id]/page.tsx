@@ -94,7 +94,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <CardContent>
               {order.isReadOnly && (
                 <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg">
-                  <AlertTriangle className="h-4 w-4 text-[#C99269]" />
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
                   <span className="text-sm">
                     This is an external order and cannot be edited
                   </span>
@@ -139,7 +139,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                   <span>{formatCurrency(order.tax)}</span>
                 </div>
                 {order.discount > 0 && (
-                  <div className="flex justify-between text-sm text-[#6F4F37]">
+                  <div className="flex justify-between text-sm text-primary">
                     <span>Discount</span>
                     <span>-{formatCurrency(order.discount)}</span>
                   </div>

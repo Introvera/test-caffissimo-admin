@@ -227,8 +227,8 @@ export default function AttendancePage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="rounded-full bg-[#E7DED0] p-2">
-                <CheckCircle className="h-5 w-5 text-[#504A40]" />
+              <div className="rounded-full bg-primary/10 p-2">
+                <CheckCircle className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Present</p>
@@ -240,8 +240,8 @@ export default function AttendancePage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="rounded-full bg-[#F4E1D2] p-2">
-                <XCircle className="h-5 w-5 text-[#6F4F37]" />
+              <div className="rounded-full bg-destructive/10 p-2">
+                <XCircle className="h-5 w-5 text-destructive" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Absent</p>
@@ -253,8 +253,8 @@ export default function AttendancePage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="rounded-full bg-[#E8BB9F] p-2">
-                <AlertCircle className="h-5 w-5 text-[#463020]" />
+              <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Late</p>

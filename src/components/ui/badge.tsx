@@ -14,16 +14,16 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        pos: "border-transparent bg-[#F4E1D2] text-[#6F4F37] dark:bg-[#403827] dark:text-[#E8BB9F]",
+        pos: "border-transparent bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
         ecommerce:
-          "border-transparent bg-[#E7DED0] text-[#504A40] dark:bg-[#2E2A24] dark:text-[#C3B5A0]",
-        uber: "border-transparent bg-[#F8F1E5] text-[#8C6B49] dark:bg-[#3B2C1B] dark:text-[#DFC794]",
+          "border-transparent bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
+        uber: "border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300",
         doordash:
-          "border-transparent bg-[#E8BB9F] text-[#463020] dark:bg-[#463020] dark:text-[#E8BB9F]",
+          "border-transparent bg-zinc-100 text-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-300",
         success:
-          "border-transparent bg-[#E7DED0] text-[#504A40] dark:bg-[#2E2A24] dark:text-[#C3B5A0]",
+          "border-transparent bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
         warning:
-          "border-transparent bg-[#F4E1D2] text-[#6F4F37] dark:bg-[#403827] dark:text-[#DFC794]",
+          "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
       },
     },
     defaultVariants: {

@@ -249,22 +249,24 @@ export default function ReportsPage() {
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dailySummary}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                     <XAxis dataKey="date" className="text-xs" />
                     <YAxis tickFormatter={(v) => `$${v}`} className="text-xs" />
                     <Tooltip
                       formatter={(value) => formatCurrency(Number(value))}
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        backgroundColor: "#232323",
+                        color: "#FFFFFF",
+                        border: "none",
                         borderRadius: "var(--radius)",
                       }}
+                      labelStyle={{ color: "#9B9B9B" }}
                     />
                     <Legend />
-                    <Bar dataKey="POS" fill="#6F4F37" stackId="a" />
-                    <Bar dataKey="E-Commerce" fill="#C99269" stackId="a" />
-                    <Bar dataKey="Uber Eats" fill="#9B907F" stackId="a" />
-                    <Bar dataKey="DoorDash" fill="#504A40" stackId="a" />
+                    <Bar dataKey="POS" fill="#099699" stackId="a" />
+                    <Bar dataKey="E-Commerce" fill="#06B6D4" stackId="a" />
+                    <Bar dataKey="Uber Eats" fill="#64748B" stackId="a" />
+                    <Bar dataKey="DoorDash" fill="#94A3B8" stackId="a" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -319,18 +321,20 @@ export default function ReportsPage() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={branchComparison} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                       <XAxis type="number" tickFormatter={(v) => `$${v}`} className="text-xs" />
                       <YAxis type="category" dataKey="name" width={100} className="text-xs" />
                       <Tooltip
                         formatter={(value) => formatCurrency(Number(value))}
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "#232323",
+                          color: "#FFFFFF",
+                          border: "none",
                           borderRadius: "var(--radius)",
                         }}
+                        labelStyle={{ color: "#9B9B9B" }}
                       />
-                      <Bar dataKey="totalSales" fill="hsl(var(--primary))" radius={4} />
+                      <Bar dataKey="totalSales" fill="#099699" radius={4} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -357,7 +361,7 @@ export default function ReportsPage() {
                     {branchComparison.map((branch, index) => (
                       <TableRow key={branch.branchId}>
                         <TableCell>
-                          <span className={index === 0 ? "text-[#C99269] font-bold" : ""}>
+                          <span className={index === 0 ? "text-primary font-bold" : ""}>
                             #{index + 1}
                           </span>
                         </TableCell>

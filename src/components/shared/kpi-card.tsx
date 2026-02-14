@@ -71,7 +71,7 @@ export function KPICard({
                   <span
                     className={cn(
                       "flex items-center text-xs font-medium",
-                      trend.value >= 0 ? "text-[#6F4F37] dark:text-[#C99269]" : "text-destructive"
+                      trend.value >= 0 ? "text-primary" : "text-destructive"
                     )}
                   >
                     {trend.value >= 0 ? (

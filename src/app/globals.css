@@ -1,65 +1,76 @@
 @import "tailwindcss";
 
-/* Light theme — bg:#FFFFFF, sidebar:#F7F6F9 */
+/* Light theme — bg:#F6F6F6, card:#FFFFFF, accent:#099699 */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 36 12% 16%;
-  --card: 252 18% 97%;
-  --card-foreground: 36 12% 16%;
-  --popover: 252 18% 97%;
-  --popover-foreground: 36 12% 16%;
-  --primary: 26 34% 33%;
+  --background: 0 0% 96%;
+  --foreground: 0 0% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 14%;
+  --primary: 181 89% 32%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 252 12% 93%;
-  --secondary-foreground: 36 12% 16%;
-  --muted: 252 12% 93%;
-  --muted-foreground: 37 10% 41%;
-  --accent: 252 12% 93%;
-  --accent-foreground: 36 12% 16%;
-  --destructive: 4 60% 45%;
+  --secondary: 0 0% 93%;
+  --secondary-foreground: 0 0% 14%;
+  --muted: 0 0% 93%;
+  --muted-foreground: 0 0% 61%;
+  --accent: 0 0% 93%;
+  --accent-foreground: 0 0% 14%;
+  --destructive: 0 72% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 252 10% 90%;
-  --input: 252 10% 90%;
-  --ring: 26 34% 33%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 181 89% 32%;
   --radius: 0.5rem;
-  --chart-1: 26 34% 33%;
-  --chart-2: 26 47% 60%;
-  --chart-3: 36 12% 55%;
-  --chart-4: 41 40% 72%;
-  --chart-5: 24 48% 76%;
+  --chart-1: 181 89% 32%;
+  --chart-2: 187 80% 42%;
+  --chart-3: 215 16% 47%;
+  --chart-4: 215 14% 63%;
+  --chart-5: 174 60% 40%;
+  --chart-grid: rgba(35, 35, 35, 0.10);
+  --chart-area: rgba(9, 150, 153, 0.18);
 }
 
-/* Dark theme — bg:#09090B, sidebar:#18181A */
+/* Dark theme — bg:#1A1A1A, card/sidebar:#232323, accent:#099699 */
 .dark {
-  --background: 240 10% 4%;
-  --foreground: 37 32% 86%;
-  --card: 240 4% 10%;
-  --card-foreground: 37 32% 86%;
-  --popover: 240 4% 10%;
-  --popover-foreground: 37 32% 86%;
-  --primary: 26 47% 60%;
-  --primary-foreground: 240 10% 4%;
-  --secondary: 240 3% 15%;
-  --secondary-foreground: 37 32% 86%;
-  --muted: 240 3% 15%;
-  --muted-foreground: 36 10% 55%;
-  --accent: 240 3% 15%;
-  --accent-foreground: 37 32% 86%;
-  --destructive: 4 55% 50%;
-  --destructive-foreground: 37 32% 86%;
-  --border: 240 3% 18%;
-  --input: 240 3% 18%;
-  --ring: 26 47% 60%;
-  --chart-1: 26 47% 60%;
-  --chart-2: 24 48% 76%;
-  --chart-3: 36 12% 55%;
-  --chart-4: 41 40% 72%;
-  --chart-5: 26 34% 45%;
+  --background: 0 0% 10%;
+  --foreground: 0 0% 96%;
+  --card: 0 0% 14%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 14%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 181 89% 32%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 18%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 61%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 96%;
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 96%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 181 89% 32%;
+  --chart-1: 181 89% 32%;
+  --chart-2: 187 80% 42%;
+  --chart-3: 215 16% 47%;
+  --chart-4: 215 14% 63%;
+  --chart-5: 174 60% 40%;
+  --chart-grid: rgba(255, 255, 255, 0.10);
+  --chart-area: rgba(9, 150, 153, 0.18);
 }
 
 /* Base styles */
 * {
-  border-color: hsl(var(--border));
+  border-color: var(--border-rgba);
+}
+
+:root {
+  --border-rgba: rgba(35, 35, 35, 0.12);
+}
+.dark {
+  --border-rgba: rgba(255, 255, 255, 0.10);
 }
 
 body {

@@ -228,13 +228,11 @@ export default function OffersPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
-                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                          offer.discountType === "percent" ? "bg-[#F4E1D2]" : "bg-[#E7DED0]"
-                        }`}>
+                        <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10">
                           {offer.discountType === "percent" ? (
-                            <Percent className="h-5 w-5 text-[#6F4F37]" />
+                            <Percent className="h-5 w-5 text-primary" />
                           ) : (
-                            <DollarSign className="h-5 w-5 text-[#504A40]" />
+                            <DollarSign className="h-5 w-5 text-primary" />
                           )}
                         </div>
                         <div>
@@ -257,11 +255,11 @@ export default function OffersPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         {offer.discountType === "percent" ? (
-                          <span className="font-semibold text-lg text-[#6F4F37]">
+                          <span className="font-semibold text-lg text-primary">
                             {offer.discountValue}% OFF
                           </span>
                         ) : (
-                          <span className="font-semibold text-lg text-[#504A40]">
+                          <span className="font-semibold text-lg text-primary">
                             {formatCurrency(offer.discountValue)} OFF
                           </span>
                         )}

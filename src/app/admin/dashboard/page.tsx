@@ -37,8 +37,8 @@ import { orders, externalSalesEntries, branches, products, auditLogs } from "@/d
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Order, OrderSource } from "@/types";
 
-// Coffee palette colors for charts
-const COLORS = ["#6F4F37", "#C99269", "#9B907F", "#504A40"];
+// Chart palette
+const COLORS = ["#099699", "#06B6D4", "#64748B", "#94A3B8"];
 
 export default function DashboardPage() {
   const { dateRange, selectedBranchId, currentRole } = useAppStore();
@@ -151,10 +151,10 @@ export default function DashboardPage() {
   // Sales by source for pie chart - using visible colors for both light/dark mode
   const salesBySource = useMemo(() => {
     return [
-      { name: "POS", value: kpis.posSales, color: "#6F4F37" },
-      { name: "E-Commerce", value: kpis.ecomSales, color: "#C99269" },
-      { name: "Uber Eats", value: kpis.uberTotalSales, color: "#9B907F" },
-      { name: "DoorDash", value: kpis.doordashTotalSales, color: "#504A40" },
+      { name: "POS", value: kpis.posSales, color: "#099699" },
+      { name: "E-Commerce", value: kpis.ecomSales, color: "#06B6D4" },
+      { name: "Uber Eats", value: kpis.uberTotalSales, color: "#64748B" },
+      { name: "DoorDash", value: kpis.doordashTotalSales, color: "#94A3B8" },
     ].filter((s) => s.value > 0);
   }, [kpis]);
 
@@ -294,21 +294,23 @@ export default function DashboardPage() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={salesTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="date" className="text-xs" />
                   <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
                   <Tooltip
                     formatter={(value) => formatCurrency(Number(value))}
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "#232323",
+                      color: "#FFFFFF",
+                      border: "none",
                       borderRadius: "var(--radius)",
                     }}
+                    labelStyle={{ color: "#9B9B9B" }}
                   />
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="hsl(var(--primary))"
+                    stroke="#099699"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -344,10 +346,12 @@ export default function DashboardPage() {
                   <Tooltip
                     formatter={(value) => formatCurrency(Number(value))}
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "#232323",
+                      color: "#FFFFFF",
+                      border: "none",
                       borderRadius: "var(--radius)",
                     }}
+                    labelStyle={{ color: "#9B9B9B" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -382,7 +386,7 @@ export default function DashboardPage() {
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topProducts} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis type="number" tickFormatter={(v) => `$${v}`} className="text-xs" />
                   <YAxis
                     type="category"
@@ -394,12 +398,14 @@ export default function DashboardPage() {
                   <Tooltip
                     formatter={(value) => formatCurrency(Number(value))}
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "#232323",
+                      color: "#FFFFFF",
+                      border: "none",
                       borderRadius: "var(--radius)",
                     }}
+                    labelStyle={{ color: "#9B9B9B" }}
                   />
-                  <Bar dataKey="sales" fill="hsl(var(--primary))" radius={4} />
+                  <Bar dataKey="sales" fill="#099699" radius={4} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
