@@ -60,7 +60,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F8F1E5] to-[#F4E1D2] dark:from-[#13110D] dark:to-[#1F1A11] p-4 relative">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-card p-4 relative">
       <div className="absolute top-4 right-4">
         <ThemeToggleSimple />
       </div>

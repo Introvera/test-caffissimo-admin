@@ -32,7 +32,9 @@ export default function RootLayout({
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
+          disableTransitionOnChange
           storageKey="caffissimo-theme"
+          themes={["light", "dark"]}
         >
           {children}
         </ThemeProvider>
