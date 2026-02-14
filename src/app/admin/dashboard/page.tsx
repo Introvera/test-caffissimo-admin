@@ -37,8 +37,8 @@ import { orders, externalSalesEntries, branches, products, auditLogs } from "@/d
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Order, OrderSource } from "@/types";
 
-// Theme-aware colors for charts
-const COLORS = ["#ea580c", "#22c55e", "#8b5cf6", "#ef4444"];
+// Coffee palette colors for charts
+const COLORS = ["#6F4F37", "#C99269", "#9B907F", "#504A40"];
 
 export default function DashboardPage() {
   const { dateRange, selectedBranchId, currentRole } = useAppStore();
@@ -151,10 +151,10 @@ export default function DashboardPage() {
   // Sales by source for pie chart - using visible colors for both light/dark mode
   const salesBySource = useMemo(() => {
     return [
-      { name: "POS", value: kpis.posSales, color: "#3b82f6" },
-      { name: "E-Commerce", value: kpis.ecomSales, color: "#22c55e" },
-      { name: "Uber Eats", value: kpis.uberTotalSales, color: "#8b5cf6" },
-      { name: "DoorDash", value: kpis.doordashTotalSales, color: "#ef4444" },
+      { name: "POS", value: kpis.posSales, color: "#6F4F37" },
+      { name: "E-Commerce", value: kpis.ecomSales, color: "#C99269" },
+      { name: "Uber Eats", value: kpis.uberTotalSales, color: "#9B907F" },
+      { name: "DoorDash", value: kpis.doordashTotalSales, color: "#504A40" },
     ].filter((s) => s.value > 0);
   }, [kpis]);
 

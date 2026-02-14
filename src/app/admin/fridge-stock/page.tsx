@@ -69,9 +69,9 @@ export default function FridgeStockPage() {
   };
 
   const getTemperatureColor = (temp: number) => {
-    if (temp < 33 || temp > 40) return "text-red-600 bg-red-100";
-    if (temp < 34 || temp > 38) return "text-amber-600 bg-amber-100";
-    return "text-green-600 bg-green-100";
+    if (temp < 33 || temp > 40) return "text-[#463020] bg-[#E8BB9F]";
+    if (temp < 34 || temp > 38) return "text-[#6F4F37] bg-[#F4E1D2]";
+    return "text-[#504A40] bg-[#E7DED0]";
   };
 
   const handleSubmit = () => {

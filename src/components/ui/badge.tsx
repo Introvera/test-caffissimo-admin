@@ -14,16 +14,16 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        pos: "border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+        pos: "border-transparent bg-[#F4E1D2] text-[#6F4F37] dark:bg-[#403827] dark:text-[#E8BB9F]",
         ecommerce:
-          "border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-        uber: "border-transparent bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-300",
+          "border-transparent bg-[#E7DED0] text-[#504A40] dark:bg-[#2E2A24] dark:text-[#C3B5A0]",
+        uber: "border-transparent bg-[#F8F1E5] text-[#8C6B49] dark:bg-[#3B2C1B] dark:text-[#DFC794]",
         doordash:
-          "border-transparent bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+          "border-transparent bg-[#E8BB9F] text-[#463020] dark:bg-[#463020] dark:text-[#E8BB9F]",
         success:
-          "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+          "border-transparent bg-[#E7DED0] text-[#504A40] dark:bg-[#2E2A24] dark:text-[#C3B5A0]",
         warning:
-          "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
+          "border-transparent bg-[#F4E1D2] text-[#6F4F37] dark:bg-[#403827] dark:text-[#DFC794]",
       },
     },
     defaultVariants: {

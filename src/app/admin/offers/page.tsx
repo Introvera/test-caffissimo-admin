@@ -229,12 +229,12 @@ export default function OffersPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                          offer.discountType === "percent" ? "bg-blue-100" : "bg-green-100"
+                          offer.discountType === "percent" ? "bg-[#F4E1D2]" : "bg-[#E7DED0]"
                         }`}>
                           {offer.discountType === "percent" ? (
-                            <Percent className="h-5 w-5 text-blue-600" />
+                            <Percent className="h-5 w-5 text-[#6F4F37]" />
                           ) : (
-                            <DollarSign className="h-5 w-5 text-green-600" />
+                            <DollarSign className="h-5 w-5 text-[#504A40]" />
                           )}
                         </div>
                         <div>
@@ -257,11 +257,11 @@ export default function OffersPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         {offer.discountType === "percent" ? (
-                          <span className="font-semibold text-lg text-blue-600">
+                          <span className="font-semibold text-lg text-[#6F4F37]">
                             {offer.discountValue}% OFF
                           </span>
                         ) : (
-                          <span className="font-semibold text-lg text-green-600">
+                          <span className="font-semibold text-lg text-[#504A40]">
                             {formatCurrency(offer.discountValue)} OFF
                           </span>
                         )}

@@ -261,10 +261,10 @@ export default function ReportsPage() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="POS" fill="#3b82f6" stackId="a" />
-                    <Bar dataKey="E-Commerce" fill="#22c55e" stackId="a" />
-                    <Bar dataKey="Uber Eats" fill="#8b5cf6" stackId="a" />
-                    <Bar dataKey="DoorDash" fill="#ef4444" stackId="a" />
+                    <Bar dataKey="POS" fill="#6F4F37" stackId="a" />
+                    <Bar dataKey="E-Commerce" fill="#C99269" stackId="a" />
+                    <Bar dataKey="Uber Eats" fill="#9B907F" stackId="a" />
+                    <Bar dataKey="DoorDash" fill="#504A40" stackId="a" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -357,7 +357,7 @@ export default function ReportsPage() {
                     {branchComparison.map((branch, index) => (
                       <TableRow key={branch.branchId}>
                         <TableCell>
-                          <span className={index === 0 ? "text-amber-500 font-bold" : ""}>
+                          <span className={index === 0 ? "text-[#C99269] font-bold" : ""}>
                             #{index + 1}
                           </span>
                         </TableCell>
