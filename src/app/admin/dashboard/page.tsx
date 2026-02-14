@@ -364,7 +364,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-1">
               <div className="grid grid-cols-[20px_1fr_80px_100px] gap-3 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-                <span></span>
+                <span>#</span>
                 <span>Product</span>
                 <span className="text-right">Sold</span>
                 <span className="text-right">Revenue</span>
@@ -374,7 +374,7 @@ export default function DashboardPage() {
                   key={product.name}
                   className="grid grid-cols-[20px_1fr_80px_100px] gap-3 items-center py-2.5 border-b last:border-0"
                 >
-                  <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                  <span className="text-xs text-muted-foreground">{index + 1}</span>
                   <span className="text-sm font-medium truncate">{product.name}</span>
                   <span className="text-sm text-right text-muted-foreground">{product.count}</span>
                   <span className="text-sm text-right font-medium">{formatCurrency(product.sales)}</span>
