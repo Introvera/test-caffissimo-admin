@@ -75,10 +75,11 @@ export function KPICard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      className="h-full"
     >
       <div
         className={cn(
-          "rounded-lg border p-4 relative overflow-hidden",
+          "rounded-lg border px-3.5 py-3 relative overflow-hidden h-full",
           featured
             ? "bg-[#232323] text-white border-[#232323]"
             : "bg-card text-card-foreground",
@@ -94,41 +95,34 @@ export function KPICard({
               <Icon className="h-3.5 w-3.5 shrink-0" />
               <span className="text-xs">{title}</span>
             </div>
-            <p className="text-xl font-semibold tracking-tight mt-2">{displayValue}</p>
-            <div className="mt-1.5">
-              {trend ? (
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <p className="text-lg font-semibold tracking-tight">{displayValue}</p>
+              {trend && (
                 <span
                   className={cn(
-                    "flex items-center text-[11px] font-medium",
+                    "flex items-center text-[10px] font-medium",
                     featured
                       ? trend.value >= 0 ? "text-emerald-400" : "text-red-400"
                       : trend.value >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"
                   )}
                 >
                   {trend.value >= 0 ? (
-                    <TrendingUp className="h-3 w-3 mr-0.5" />
+                    <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
                   ) : (
-                    <TrendingDown className="h-3 w-3 mr-0.5" />
+                    <TrendingDown className="h-2.5 w-2.5 mr-0.5" />
                   )}
                   {Math.abs(trend.value)}%
-                  {trend.label && (
-                    <span className={cn(
-                      "ml-1",
-                      featured ? "text-white/40" : "text-muted-foreground"
-                    )}>
-                      {trend.label}
-                    </span>
-                  )}
                 </span>
-              ) : (
-                <p className={cn(
-                  "text-[11px]",
-                  featured ? "text-white/40" : "text-muted-foreground"
-                )}>
-                  {subtitle || "\u00A0"}
-                </p>
               )}
             </div>
+            {subtitle && (
+              <p className={cn(
+                "text-[10px] mt-0.5",
+                featured ? "text-white/40" : "text-muted-foreground"
+              )}>
+                {subtitle}
+              </p>
+            )}
           </div>
           {sparkline && sparkline.length > 1 && (
             <MiniSparkline

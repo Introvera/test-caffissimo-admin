@@ -223,8 +223,8 @@ export default function DashboardPage() {
 
       {/* KPI + Sales Trend (left) | Sales by Source (right, full height) */}
       <div className="grid gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
-        {/* KPI Cards — 2x2 */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+        {/* KPI Cards — 4x1 */}
+        <div className="lg:col-span-2 grid grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
           <KPICard
             title="Total Sales"
             value={kpis.totalSales}
@@ -232,14 +232,12 @@ export default function DashboardPage() {
             icon={DollarSign}
             trend={{ value: 12.5, label: "vs last period" }}
             featured
-            sparkline={salesTrendData.map((d) => d.total)}
           />
           <KPICard
             title="Orders"
             value={kpis.orderCount}
             icon={ShoppingCart}
             subtitle={`${kpis.cancelledCount} cancelled`}
-            sparkline={salesTrendData.map((d) => d.total > 0 ? Math.round(d.total / (kpis.avgOrderValue || 1)) : 0)}
           />
           <KPICard
             title="Avg Order"
