@@ -37,7 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canCompareBranches } from "@/stores/app-store";
+import { useAppStore, canAccessAdmin } from "@/stores/app-store";
 import { orders, externalSalesEntries, branches } from "@/data/seed";
 import { formatCurrency } from "@/lib/utils";
 
@@ -233,7 +233,7 @@ export default function ReportsPage() {
       <Tabs defaultValue="daily" className="space-y-4">
         <TabsList>
           <TabsTrigger value="daily">Daily Summary</TabsTrigger>
-          {canCompareBranches(currentRole) && (
+          {canAccessAdmin(currentRole) && (
             <TabsTrigger value="branches">Branch Comparison</TabsTrigger>
           )}
         </TabsList>
@@ -307,7 +307,7 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        {canCompareBranches(currentRole) && (
+        {canAccessAdmin(currentRole) && (
           <TabsContent value="branches" className="space-y-4">
             {/* Branch Comparison Chart */}
             <Card>

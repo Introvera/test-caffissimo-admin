@@ -101,10 +101,6 @@ export default function OrdersPage() {
           );
         },
       }),
-      columnHelper.accessor("customerName", {
-        header: "Customer",
-        cell: (info) => info.getValue() || <span className="text-muted-foreground">Walk-in</span>,
-      }),
       columnHelper.accessor("total", {
         header: "Total",
         cell: (info) => (
@@ -167,7 +163,7 @@ export default function OrdersPage() {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search orders..."
+                  placeholder="Search by order number..."
                   value={globalFilter ?? ""}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-8 w-[200px]"

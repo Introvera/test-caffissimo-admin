@@ -8,7 +8,6 @@ import {
   OrderStatus,
   PaymentMethod,
   User,
-  Role,
   Offer,
   FridgeStockReport,
   AttendanceEntry,
@@ -389,17 +388,14 @@ export const offers: Offer[] = [
 // ============== FRIDGE STOCK REPORTS ==============
 function generateFridgeReports(): FridgeStockReport[] {
   const reports: FridgeStockReport[] = [];
-  const items = [
-    "Whole Milk (Gallons)",
-    "Oat Milk (Cartons)",
-    "Almond Milk (Cartons)",
-    "Heavy Cream (Quarts)",
-    "Half & Half (Quarts)",
-    "Cold Brew Concentrate (Gallons)",
-    "Whipped Cream Cans",
+  const fridgeUnits = [
+    "Main Fridge",
+    "Milk Fridge",
+    "Pastry Display Fridge",
+    "Walk-in Cooler",
   ];
 
-  let itemSeed = 100;
+  let tempSeed = 100;
   for (let daysAgo = 0; daysAgo < 14; daysAgo++) {
     const date = subDays(BASE_DATE, daysAgo);
     const dateStr = format(date, "yyyy-MM-dd");
@@ -409,11 +405,11 @@ function generateFridgeReports(): FridgeStockReport[] {
         id: `fridge-${branch.id}-${dateStr}`,
         branchId: branch.id,
         date: dateStr,
-        items: items.map((name, idx) => ({
+        temperatures: fridgeUnits.map((name, idx) => ({
           name,
-          quantity: 1 + ((itemSeed++ * 7 + idx) % 10),
+          temperature: parseFloat((34 + ((tempSeed++ * 7 + idx) % 10) * 0.5).toFixed(1)),
         })),
-        notes: daysAgo % 3 === 0 ? "Need to restock oat milk soon" : undefined,
+        notes: daysAgo % 3 === 0 ? "Walk-in cooler running slightly warm" : undefined,
         submittedBy: users.find((u) => u.branchId === branch.id && u.role === "supervisor")?.name || "Staff",
         createdAt: date.toISOString(),
       });

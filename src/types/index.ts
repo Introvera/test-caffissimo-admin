@@ -138,18 +138,17 @@ export interface Offer {
 }
 
 // ============== FRIDGE STOCK ==============
-export interface FridgeStockItem {
+export interface FridgeTemperatureEntry {
   name: string;
-  quantity: number;
+  temperature: number; // in °F
 }
 
 export interface FridgeStockReport {
   id: string;
   branchId: string;
   date: string;
-  items: FridgeStockItem[];
+  temperatures: FridgeTemperatureEntry[];
   notes?: string;
-  attachments?: string[];
   submittedBy: string;
   createdAt: string;
 }
@@ -199,10 +198,8 @@ export interface AuditLog {
 // ============== SETTINGS ==============
 export interface Settings {
   id: string;
-  logoUrl?: string;
   taxRate: number;
   serviceFeeRate: number;
-  posRules?: Record<string, unknown>;
   updatedAt: string;
 }
 

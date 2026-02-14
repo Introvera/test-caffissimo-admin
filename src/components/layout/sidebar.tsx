@@ -10,7 +10,6 @@ import {
   Package,
   Tags,
   Store,
-  Truck,
   Thermometer,
   Users,
   Clock,
@@ -31,7 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAppStore, canManageOffers, canViewReports, canViewAttendance, canViewAuditLogs, canManageUsers, canSubmitFridgeReport } from "@/stores/app-store";
+import { useAppStore, canAccessAdmin } from "@/stores/app-store";
 
 import { Role } from "@/types";
 
@@ -43,18 +42,17 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "Reports", href: "/admin/reports", icon: FileText, permission: canViewReports },
-  { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { title: "Platforms", href: "/admin/platforms", icon: Truck },
-  { title: "Products", href: "/admin/products", icon: Package },
-  { title: "Offers", href: "/admin/offers", icon: Tags, permission: canManageOffers },
-  { title: "Branches", href: "/admin/branches", icon: Store },
-  { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer, permission: canSubmitFridgeReport },
-  { title: "Attendance", href: "/admin/attendance", icon: Clock, permission: canViewAttendance },
-  { title: "Users", href: "/admin/users", icon: Users, permission: canManageUsers },
-  { title: "Audit Logs", href: "/admin/audit-logs", icon: FileSearch, permission: canViewAuditLogs },
-  { title: "Settings", href: "/admin/settings", icon: Settings },
+  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: canAccessAdmin },
+  { title: "Reports", href: "/admin/reports", icon: FileText, permission: canAccessAdmin },
+  { title: "Orders", href: "/admin/orders", icon: ShoppingCart, permission: canAccessAdmin },
+  { title: "Products", href: "/admin/products", icon: Package, permission: canAccessAdmin },
+  { title: "Offers", href: "/admin/offers", icon: Tags, permission: canAccessAdmin },
+  { title: "Branches", href: "/admin/branches", icon: Store, permission: canAccessAdmin },
+  { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer, permission: canAccessAdmin },
+  { title: "Attendance", href: "/admin/attendance", icon: Clock, permission: canAccessAdmin },
+  { title: "Users", href: "/admin/users", icon: Users, permission: canAccessAdmin },
+  { title: "Audit Logs", href: "/admin/audit-logs", icon: FileSearch, permission: canAccessAdmin },
+  { title: "Settings", href: "/admin/settings", icon: Settings, permission: canAccessAdmin },
 ];
 
 export function Sidebar() {

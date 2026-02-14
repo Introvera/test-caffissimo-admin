@@ -8,8 +8,6 @@ import {
   Percent,
   DollarSign,
   Edit,
-  Trash2,
-  Eye,
   Tags,
 } from "lucide-react";
 import { format, parseISO, isBefore, isAfter } from "date-fns";
@@ -291,9 +289,6 @@ export default function OffersPage() {
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -304,48 +299,6 @@ export default function OffersPage() {
         </div>
       )}
 
-      {/* Preview Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>E-Commerce Preview</CardTitle>
-          <CardDescription>
-            How active offers appear to customers on the website
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {filteredOffers
-              .filter((o) => o.isActive)
-              .slice(0, 3)
-              .map((offer) => (
-                <div
-                  key={offer.id}
-                  className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-4"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    {offer.discountType === "percent" ? (
-                      <span className="text-2xl font-bold text-primary">
-                        {offer.discountValue}%
-                      </span>
-                    ) : (
-                      <span className="text-2xl font-bold text-primary">
-                        ${offer.discountValue}
-                      </span>
-                    )}
-                    <span className="text-lg font-medium">OFF</span>
-                  </div>
-                  <h4 className="font-medium">{offer.name}</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {offer.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Valid until {formatDate(offer.endDate)}
-                  </p>
-                </div>
-              ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

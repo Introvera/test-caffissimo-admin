@@ -86,51 +86,57 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-// RBAC helpers
+// RBAC helpers — all admin features are accessible to SA, BO, SV only
+// Cashier role has no access to the admin panel
+
+const isAdmin = (role: Role): boolean => {
+  return role === "super_admin" || role === "branch_owner" || role === "supervisor";
+};
+
 export const canAccessAllBranches = (role: Role): boolean => {
   return role === "super_admin";
 };
 
+export const canAccessAdmin = (role: Role): boolean => {
+  return isAdmin(role);
+};
+
 export const canManageUsers = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canManageOffers = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canManageProducts = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner" || role === "supervisor";
+  return isAdmin(role);
 };
 
 export const canManageBranch = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner" || role === "supervisor";
+  return isAdmin(role);
 };
 
 export const canViewReports = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canCancelOrders = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canSubmitFridgeReport = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner" || role === "supervisor";
+  return isAdmin(role);
 };
 
 export const canViewAttendance = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canViewAuditLogs = (role: Role): boolean => {
-  return role === "super_admin" || role === "branch_owner";
+  return isAdmin(role);
 };
 
 export const canManageSettings = (role: Role): boolean => {
-  return role === "super_admin";
-};
-
-export const canCompareBranches = (role: Role): boolean => {
-  return role === "super_admin";
+  return isAdmin(role);
 };

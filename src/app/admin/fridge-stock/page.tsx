@@ -25,35 +25,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useAppStore, canSubmitFridgeReport, canAccessAllBranches } from "@/stores/app-store";
 import { fridgeStockReports, branches } from "@/data/seed";
 import { formatDate } from "@/lib/utils";
 
-const STOCK_ITEMS = [
-  "Whole Milk (Gallons)",
-  "Oat Milk (Cartons)",
-  "Almond Milk (Cartons)",
-  "Heavy Cream (Quarts)",
-  "Half & Half (Quarts)",
-  "Cold Brew Concentrate (Gallons)",
-  "Whipped Cream Cans",
+const FRIDGE_UNITS = [
+  "Main Fridge",
+  "Milk Fridge",
+  "Pastry Display Fridge",
+  "Walk-in Cooler",
 ];
 
 export default function FridgeStockPage() {
   const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
-  const [stockValues, setStockValues] = useState<Record<string, number>>({});
+  const [temperatureValues, setTemperatureValues] = useState<Record<string, number>>({});
 
   const effectiveBranchId = selectedBranchId || assignedBranchId;
   const canSubmit = canSubmitFridgeReport(currentRole);
@@ -79,17 +68,23 @@ export default function FridgeStockPage() {
     return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
   };
 
+  const getTemperatureColor = (temp: number) => {
+    if (temp < 33 || temp > 40) return "text-red-600 bg-red-100";
+    if (temp < 34 || temp > 38) return "text-amber-600 bg-amber-100";
+    return "text-green-600 bg-green-100";
+  };
+
   const handleSubmit = () => {
-    console.log("Submitting stock report:", stockValues);
+    console.log("Submitting temperature report:", temperatureValues);
     setSubmitDialogOpen(false);
-    setStockValues({});
+    setTemperatureValues({});
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Fridge Stock Report"
-        description="Track daily inventory levels"
+        title="Fridge Temperature Report"
+        description="Track daily fridge temperatures"
         actions={
           canSubmit && (
             <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
@@ -101,9 +96,9 @@ export default function FridgeStockPage() {
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Submit Daily Stock Report</DialogTitle>
+                  <DialogTitle>Submit Daily Temperature Report</DialogTitle>
                   <DialogDescription>
-                    Enter today's inventory counts
+                    Enter today&apos;s fridge temperatures (°F)
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
@@ -132,23 +127,26 @@ export default function FridgeStockPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Stock Items</Label>
-                    {STOCK_ITEMS.map((item) => (
-                      <div key={item} className="flex items-center gap-3">
-                        <span className="flex-1 text-sm">{item}</span>
-                        <Input
-                          type="number"
-                          min="0"
-                          className="w-20"
-                          placeholder="0"
-                          value={stockValues[item] || ""}
-                          onChange={(e) =>
-                            setStockValues((prev) => ({
-                              ...prev,
-                              [item]: parseInt(e.target.value) || 0,
-                            }))
-                          }
-                        />
+                    <Label>Fridge Temperatures (°F)</Label>
+                    {FRIDGE_UNITS.map((unit) => (
+                      <div key={unit} className="flex items-center gap-3">
+                        <span className="flex-1 text-sm">{unit}</span>
+                        <div className="relative w-24">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            className="pr-7"
+                            placeholder="36.0"
+                            value={temperatureValues[unit] || ""}
+                            onChange={(e) =>
+                              setTemperatureValues((prev) => ({
+                                ...prev,
+                                [unit]: parseFloat(e.target.value) || 0,
+                              }))
+                            }
+                          />
+                          <span className="absolute right-2.5 top-2.5 text-xs text-muted-foreground">°F</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -175,7 +173,7 @@ export default function FridgeStockPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Stock Reports History</CardTitle>
+            <CardTitle>Temperature Report History</CardTitle>
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -192,7 +190,7 @@ export default function FridgeStockPage() {
             <EmptyState
               icon={Thermometer}
               title="No reports found"
-              description="Submit a stock report to track inventory"
+              description="Submit a temperature report to track fridge conditions"
               action={
                 canSubmit && (
                   <Button onClick={() => setSubmitDialogOpen(true)}>
@@ -223,22 +221,22 @@ export default function FridgeStockPage() {
                               {formatDate(report.date)}
                             </CardTitle>
                             <CardDescription>
-                              {getBranchName(report.branchId)} • Submitted by {report.submittedBy}
+                              {getBranchName(report.branchId)} &bull; Submitted by {report.submittedBy}
                             </CardDescription>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                        {report.items.map((item) => (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {report.temperatures.map((entry) => (
                           <div
-                            key={item.name}
-                            className="text-center p-2 rounded-lg bg-muted"
+                            key={entry.name}
+                            className={`text-center p-3 rounded-lg ${getTemperatureColor(entry.temperature)}`}
                           >
-                            <p className="text-2xl font-bold">{item.quantity}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {item.name}
+                            <p className="text-2xl font-bold">{entry.temperature}°F</p>
+                            <p className="text-xs line-clamp-2 mt-1">
+                              {entry.name}
                             </p>
                           </div>
                         ))}

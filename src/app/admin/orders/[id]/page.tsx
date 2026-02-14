@@ -7,9 +7,6 @@ import {
   ArrowLeft,
   Clock,
   MapPin,
-  User,
-  Mail,
-  Phone,
   CreditCard,
   AlertTriangle,
 } from "lucide-react";
@@ -212,37 +209,6 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Customer Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {order.customerName ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{order.customerName}</span>
-                  </div>
-                  {order.customerEmail && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{order.customerEmail}</span>
-                    </div>
-                  )}
-                  {order.customerPhone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{order.customerPhone}</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-muted-foreground">Walk-in customer</p>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Branch Info */}
           <Card>
             <CardHeader>
@@ -271,18 +237,6 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               </div>
             </CardContent>
           </Card>
-
-          {/* Customer Notes */}
-          {order.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Customer Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{order.notes}</p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Actions */}
           {canCancel && (
