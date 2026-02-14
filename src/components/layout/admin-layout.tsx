@@ -13,7 +13,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { sidebarCollapsed } = useAppStore();
 
   return (
-    <div className="min-h-screen bg-card">
+    <div className="min-h-screen bg-sidebar">
       <Sidebar />
       <div
         className={cn(

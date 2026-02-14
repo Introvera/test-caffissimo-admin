@@ -383,7 +383,7 @@ export function Sidebar() {
         initial={false}
         animate={{ width: sidebarCollapsed ? 72 : 256 }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="hidden lg:flex h-screen flex-col bg-card fixed left-0 top-0 z-30 pt-3"
+        className="hidden lg:flex h-screen flex-col bg-sidebar fixed left-0 top-0 z-30 pt-3"
       >
         {sidebarContent(sidebarCollapsed)}
       </motion.aside>
@@ -405,7 +405,7 @@ export function Sidebar() {
               animate={{ x: 0 }}
               exit={{ x: -256 }}
               transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="fixed left-0 top-0 z-50 h-screen w-64 border-r bg-card lg:hidden"
+              className="fixed left-0 top-0 z-50 h-screen w-64 border-r bg-sidebar lg:hidden"
             >
               <div className="absolute right-2 top-2">
                 <Button
