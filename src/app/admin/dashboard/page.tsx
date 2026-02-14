@@ -229,12 +229,15 @@ export default function DashboardPage() {
           isCurrency
           icon={DollarSign}
           trend={{ value: 12.5, label: "vs last period" }}
+          featured
+          sparkline={salesTrendData.map((d) => d.total)}
         />
         <KPICard
           title="Orders"
           value={kpis.orderCount}
           icon={ShoppingCart}
           subtitle={`${kpis.cancelledCount} cancelled`}
+          sparkline={salesTrendData.map((d) => d.total > 0 ? Math.round(d.total / (kpis.avgOrderValue || 1)) : 0)}
         />
         <KPICard
           title="Avg Order"
