@@ -360,31 +360,25 @@ export default function DashboardPage() {
             <CardDescription>Best sellers by revenue</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProducts} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis type="number" tickFormatter={(v) => `$${v}`} className="text-xs" />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={120}
-                    className="text-xs"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={{
-                      backgroundColor: "#232323",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: "var(--radius)",
-                    }}
-                    labelStyle={{ color: "#9B9B9B" }}
-                  />
-                  <Bar dataKey="sales" fill="#099699" radius={4} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="space-y-1">
+              <div className="grid grid-cols-[1fr_80px_100px] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+                <span>Product</span>
+                <span className="text-right">Sold</span>
+                <span className="text-right">Revenue</span>
+              </div>
+              {topProducts.map((product, index) => (
+                <div
+                  key={product.name}
+                  className="grid grid-cols-[1fr_80px_100px] gap-4 items-center py-2.5 border-b last:border-0"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs font-medium text-muted-foreground w-5">{index + 1}</span>
+                    <span className="text-sm font-medium truncate">{product.name}</span>
+                  </div>
+                  <span className="text-sm text-right text-muted-foreground">{product.count}</span>
+                  <span className="text-sm text-right font-medium">{formatCurrency(product.sales)}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
