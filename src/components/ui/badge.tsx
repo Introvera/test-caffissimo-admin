@@ -14,16 +14,16 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        pos: "border-transparent bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+        pos: "border-transparent bg-[#099699]/8 text-[#099699] dark:bg-[#099699]/15 dark:text-[#5cd5d7]",
         ecommerce:
-          "border-transparent bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300",
-        uber: "border-transparent bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300",
+          "border-transparent bg-[#0891b2]/8 text-[#0891b2] dark:bg-[#0891b2]/15 dark:text-[#67d3f5]",
+        uber: "border-transparent bg-[#64748b]/8 text-[#64748b] dark:bg-[#64748b]/15 dark:text-[#b0b8c4]",
         doordash:
-          "border-transparent bg-zinc-100 text-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-300",
+          "border-transparent bg-[#6b7280]/8 text-[#6b7280] dark:bg-[#6b7280]/15 dark:text-[#b5b5b5]",
         success:
-          "border-transparent bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300",
+          "border-transparent bg-[#10b981]/8 text-[#0d9668] dark:bg-[#10b981]/15 dark:text-[#5cd5c8]",
         warning:
-          "border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+          "border-transparent bg-[#f59e0b]/10 text-[#b47b09] dark:bg-[#f59e0b]/15 dark:text-[#fbbf24]",
       },
     },
     defaultVariants: {
