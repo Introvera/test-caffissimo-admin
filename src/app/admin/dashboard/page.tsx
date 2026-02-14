@@ -10,6 +10,8 @@ import {
   Globe,
   Car,
   XCircle,
+  Clock,
+  ChevronRight,
 } from "lucide-react";
 import {
   AreaChart,
@@ -361,7 +363,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              <div className="grid grid-cols-[1fr_80px_100px] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+              <div className="grid grid-cols-[20px_1fr_80px_100px] gap-3 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+                <span></span>
                 <span>Product</span>
                 <span className="text-right">Sold</span>
                 <span className="text-right">Revenue</span>
@@ -369,12 +372,10 @@ export default function DashboardPage() {
               {topProducts.map((product, index) => (
                 <div
                   key={product.name}
-                  className="grid grid-cols-[1fr_80px_100px] gap-4 items-center py-2.5 border-b last:border-0"
+                  className="grid grid-cols-[20px_1fr_80px_100px] gap-3 items-center py-2.5 border-b last:border-0"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-xs font-medium text-muted-foreground w-5">{index + 1}</span>
-                    <span className="text-sm font-medium truncate">{product.name}</span>
-                  </div>
+                  <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                  <span className="text-sm font-medium truncate">{product.name}</span>
                   <span className="text-sm text-right text-muted-foreground">{product.count}</span>
                   <span className="text-sm text-right font-medium">{formatCurrency(product.sales)}</span>
                 </div>
@@ -390,36 +391,57 @@ export default function DashboardPage() {
             <CardDescription>Latest orders and changes</CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[250px]">
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start justify-between gap-4 pb-4 border-b last:border-0 last:pb-0"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {activity.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {activity.subtitle}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(activity.timestamp)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {activity.type === "order" && activity.source && (
-                        <SourceBadge source={activity.source} />
-                      )}
-                      {activity.type === "order" && activity.status && (
-                        <StatusBadge status={activity.status} />
-                      )}
+            <div className="h-[280px] overflow-y-auto pr-2">
+              {(() => {
+                // Group activities by date
+                const grouped: Record<string, typeof recentActivity> = {};
+                recentActivity.forEach((a) => {
+                  const day = format(parseISO(a.timestamp), "EEE, MMM d yyyy");
+                  if (!grouped[day]) grouped[day] = [];
+                  grouped[day].push(a);
+                });
+
+                return Object.entries(grouped).map(([date, items]) => (
+                  <div key={date} className="mb-6 last:mb-0">
+                    <p className="text-xs font-medium text-muted-foreground mb-3 pl-10">{date}</p>
+                    <div className="relative">
+                      {/* Vertical line — centered on the circles */}
+                      <div className="absolute left-[13px] top-0 bottom-0 w-px bg-primary/20" />
+
+                      {items.map((activity) => (
+                        <div key={activity.id} className="flex items-start gap-3 py-3">
+                          {/* Circle */}
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 z-10">
+                            <Clock className="h-3.5 w-3.5 text-primary" />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <p className="text-[11px] text-muted-foreground leading-none">
+                              {format(parseISO(activity.timestamp), "MMM d 'at' hh:mmaaa")}
+                            </p>
+                            <p className="text-sm mt-1 leading-snug">
+                              <span className="font-semibold text-primary underline decoration-primary/30 underline-offset-2">
+                                {activity.type === "order" ? activity.title : activity.subtitle?.replace("by ", "")}
+                              </span>
+                              {" "}
+                              <span className="font-medium">
+                                {activity.type === "order"
+                                  ? activity.subtitle
+                                  : activity.title.toLowerCase()}
+                              </span>
+                            </p>
+                          </div>
+
+                          {/* Arrow */}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1.5" />
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                ));
+              })()}
+            </div>
           </CardContent>
         </Card>
       </div>
