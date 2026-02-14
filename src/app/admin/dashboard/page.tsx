@@ -221,92 +221,49 @@ export default function DashboardPage() {
         }
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard
-          title="Total Sales"
-          value={kpis.totalSales}
-          isCurrency
-          icon={DollarSign}
-          trend={{ value: 12.5, label: "vs last period" }}
-          featured
-          sparkline={salesTrendData.map((d) => d.total)}
-        />
-        <KPICard
-          title="Orders"
-          value={kpis.orderCount}
-          icon={ShoppingCart}
-          subtitle={`${kpis.cancelledCount} cancelled`}
-          sparkline={salesTrendData.map((d) => d.total > 0 ? Math.round(d.total / (kpis.avgOrderValue || 1)) : 0)}
-        />
-        <KPICard
-          title="Avg Order"
-          value={kpis.avgOrderValue}
-          isCurrency
-          icon={TrendingUp}
-        />
-        <KPICard
-          title="Products Sold"
-          value={filteredOrders
-            .filter((o) => o.status !== "cancelled")
-            .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
-          icon={Package}
-        />
-      </div>
+      {/* KPI + Sales Trend (left) | Sales by Source (right, full height) */}
+      <div className="grid gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
+        {/* KPI Cards — 2x2 */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-3">
+          <KPICard
+            title="Total Sales"
+            value={kpis.totalSales}
+            isCurrency
+            icon={DollarSign}
+            trend={{ value: 12.5, label: "vs last period" }}
+            featured
+            sparkline={salesTrendData.map((d) => d.total)}
+          />
+          <KPICard
+            title="Orders"
+            value={kpis.orderCount}
+            icon={ShoppingCart}
+            subtitle={`${kpis.cancelledCount} cancelled`}
+            sparkline={salesTrendData.map((d) => d.total > 0 ? Math.round(d.total / (kpis.avgOrderValue || 1)) : 0)}
+          />
+          <KPICard
+            title="Avg Order"
+            value={kpis.avgOrderValue}
+            isCurrency
+            icon={TrendingUp}
+          />
+          <KPICard
+            title="Products Sold"
+            value={filteredOrders
+              .filter((o) => o.status !== "cancelled")
+              .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
+            icon={Package}
+          />
+        </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Sales Trend */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Sales Trend</CardTitle>
-            <CardDescription>Daily sales by source</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesTrendData}>
-                  <defs>
-                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#099699" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#099699" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis dataKey="date" className="text-xs" />
-                  <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={{
-                      backgroundColor: "#232323",
-                      color: "#FFFFFF",
-                      border: "none",
-                      borderRadius: "var(--radius)",
-                    }}
-                    labelStyle={{ color: "#9B9B9B" }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke="#099699"
-                    strokeWidth={2}
-                    fill="url(#salesGradient)"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sales by Source */}
-        <Card>
+        {/* Sales by Source — spans both rows */}
+        <Card className="lg:row-span-2 flex flex-col">
           <CardHeader>
             <CardTitle>Sales by Source</CardTitle>
             <CardDescription>Revenue distribution</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
+          <CardContent className="flex-1 flex flex-col">
+            <div className="flex-1 min-h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -348,6 +305,49 @@ export default function DashboardPage() {
                   <span className="font-medium">{formatCurrency(source.value)}</span>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sales Trend — below KPI cards */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Sales Trend</CardTitle>
+            <CardDescription>Daily sales by source</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesTrendData}>
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#099699" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#099699" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="date" className="text-xs" />
+                  <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(Number(value))}
+                    contentStyle={{
+                      backgroundColor: "#232323",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "var(--radius)",
+                    }}
+                    labelStyle={{ color: "#9B9B9B" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#099699"
+                    strokeWidth={2}
+                    fill="url(#salesGradient)"
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
