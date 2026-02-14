@@ -21,7 +21,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-64"
         )}
       >
-        <div className="flex-1 flex flex-col lg:rounded-2xl bg-background lg:m-3 lg:shadow-sm lg:max-h-[calc(100vh-1.5rem)] lg:overflow-hidden">
+        <div className="flex-1 flex flex-col lg:rounded-2xl bg-background lg:m-3 lg:max-h-[calc(100vh-1.5rem)] lg:overflow-hidden">
           <Header />
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
         </div>
