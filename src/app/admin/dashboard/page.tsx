@@ -222,58 +222,25 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           title="Total Sales"
           value={kpis.totalSales}
           isCurrency
           icon={DollarSign}
           trend={{ value: 12.5, label: "vs last period" }}
-          className=""
-        />
-        <KPICard
-          title="POS Sales"
-          value={kpis.posSales}
-          isCurrency
-          icon={Store}
-          subtitle="In-store"
-          className=""
-        />
-        <KPICard
-          title="E-Commerce"
-          value={kpis.ecomSales}
-          isCurrency
-          icon={Globe}
-          subtitle="Online pickup"
-          className=""
         />
         <KPICard
           title="Orders"
           value={kpis.orderCount}
           icon={ShoppingCart}
           subtitle={`${kpis.cancelledCount} cancelled`}
-          className=""
-        />
-        <KPICard
-          title="Uber Eats"
-          value={kpis.uberTotalSales}
-          isCurrency
-          icon={Car}
-          className=""
-        />
-        <KPICard
-          title="DoorDash"
-          value={kpis.doordashTotalSales}
-          isCurrency
-          icon={Car}
-          className=""
         />
         <KPICard
           title="Avg Order"
           value={kpis.avgOrderValue}
           isCurrency
           icon={TrendingUp}
-          className=""
         />
         <KPICard
           title="Products Sold"
@@ -281,7 +248,6 @@ export default function DashboardPage() {
             .filter((o) => o.status !== "cancelled")
             .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
           icon={Package}
-          className=""
         />
       </div>
 
