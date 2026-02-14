@@ -222,56 +222,58 @@ export default function DashboardPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-4 lg:grid-cols-8 gap-3">
         <KPICard
           title="Total Sales"
           value={kpis.totalSales}
           isCurrency
           icon={DollarSign}
           trend={{ value: 12.5, label: "vs last period" }}
+          className=""
         />
         <KPICard
           title="POS Sales"
           value={kpis.posSales}
           isCurrency
           icon={Store}
-          subtitle="In-store transactions"
+          subtitle="In-store"
+          className=""
         />
         <KPICard
-          title="E-Commerce Sales"
+          title="E-Commerce"
           value={kpis.ecomSales}
           isCurrency
           icon={Globe}
-          subtitle="Online pickup orders"
+          subtitle="Online pickup"
+          className=""
         />
         <KPICard
           title="Orders"
           value={kpis.orderCount}
           icon={ShoppingCart}
           subtitle={`${kpis.cancelledCount} cancelled`}
+          className=""
         />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Uber Eats Sales"
+          title="Uber Eats"
           value={kpis.uberTotalSales}
           isCurrency
           icon={Car}
-          subtitle="Platform orders + imports"
+          className=""
         />
         <KPICard
-          title="DoorDash Sales"
+          title="DoorDash"
           value={kpis.doordashTotalSales}
           isCurrency
           icon={Car}
-          subtitle="Platform orders + imports"
+          className=""
         />
         <KPICard
-          title="Avg Order Value"
+          title="Avg Order"
           value={kpis.avgOrderValue}
           isCurrency
           icon={TrendingUp}
+          className=""
         />
         <KPICard
           title="Products Sold"
@@ -279,6 +281,7 @@ export default function DashboardPage() {
             .filter((o) => o.status !== "cancelled")
             .reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0)}
           icon={Package}
+          className=""
         />
       </div>
 

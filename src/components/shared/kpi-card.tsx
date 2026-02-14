@@ -37,13 +37,9 @@ export function KPICard({
   if (isLoading) {
     return (
       <Card className={className}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-10 rounded-full" />
-          </div>
-          <Skeleton className="h-8 w-32 mt-2" />
-          <Skeleton className="h-4 w-20 mt-1" />
+        <CardContent className="p-5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-32 mt-3" />
         </CardContent>
       </Card>
     );
@@ -54,40 +50,34 @@ export function KPICard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      className="h-full"
     >
-      <Card className={cn("overflow-hidden", className)}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="rounded-full bg-primary/10 p-2">
-              <Icon className="h-5 w-5 text-primary" />
-            </div>
+      <Card className={cn("overflow-hidden h-full", className)}>
+        <CardContent className="px-3 py-3 h-full flex flex-col">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[11px] truncate">{title}</span>
           </div>
-          <div className="mt-2">
-            <p className="text-2xl font-bold">{displayValue}</p>
-            {(subtitle || trend) && (
-              <div className="flex items-center gap-2 mt-1">
-                {trend && (
-                  <span
-                    className={cn(
-                      "flex items-center text-xs font-medium",
-                      trend.value >= 0 ? "text-primary" : "text-destructive"
-                    )}
-                  >
-                    {trend.value >= 0 ? (
-                      <TrendingUp className="h-3 w-3 mr-0.5" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 mr-0.5" />
-                    )}
-                    {Math.abs(trend.value)}%
-                  </span>
+          <p className="text-base font-semibold tracking-tight mt-1.5">{displayValue}</p>
+          <div className="mt-auto pt-1">
+            {trend ? (
+              <span
+                className={cn(
+                  "flex items-center text-[10px] font-medium",
+                  trend.value >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"
                 )}
-                {subtitle && (
-                  <span className="text-xs text-muted-foreground">
-                    {subtitle}
-                  </span>
+              >
+                {trend.value >= 0 ? (
+                  <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
+                ) : (
+                  <TrendingDown className="h-2.5 w-2.5 mr-0.5" />
                 )}
-              </div>
+                {Math.abs(trend.value)}%
+              </span>
+            ) : subtitle ? (
+              <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>
+            ) : (
+              <span className="text-[10px] invisible">—</span>
             )}
           </div>
         </CardContent>
