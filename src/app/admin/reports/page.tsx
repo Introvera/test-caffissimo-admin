@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Download,
   FileText,
   TrendingUp,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   BarChart,
@@ -45,6 +47,8 @@ export default function ReportsPage() {
   const { dateRange, selectedBranchId, currentRole } = useAppStore();
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [dailyPage, setDailyPage] = useState(0);
+  const DAILY_PAGE_SIZE = 10;
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -74,6 +78,11 @@ export default function ReportsPage() {
       return inDateRange && inBranch;
     });
   }, [dateRange, selectedBranchId]);
+
+  // Reset daily pagination when filters change
+  useEffect(() => {
+    setDailyPage(0);
+  }, [dateRange, selectedBranchId, sourceFilter, paymentFilter]);
 
   // Daily summary data
   const dailySummary = useMemo(() => {
@@ -143,23 +152,7 @@ export default function ReportsPage() {
         title="Sales Reports"
         description="Analyze sales performance across branches and sources"
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button variant="outline" size="sm">
-              <FileText className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Source" />
@@ -183,9 +176,18 @@ export default function ReportsPage() {
                 <SelectItem value="online">Online</SelectItem>
               </SelectContent>
             </Select>
+            <div className="h-6 w-px bg-border hidden sm:block" />
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button variant="outline" size="sm">
+              <FileText className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        }
+      />
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -292,19 +294,48 @@ export default function ReportsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dailySummary.map((day) => (
-                    <TableRow key={day.fullDate}>
-                      <TableCell className="font-medium">{day.date}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day.POS)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day["E-Commerce"])}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day["Uber Eats"])}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(day.DoorDash)}</TableCell>
-                      <TableCell className="text-right font-medium">{formatCurrency(day.total)}</TableCell>
-                      <TableCell className="text-right">{day.orders}</TableCell>
-                    </TableRow>
-                  ))}
+                  {dailySummary
+                    .slice(dailyPage * DAILY_PAGE_SIZE, (dailyPage + 1) * DAILY_PAGE_SIZE)
+                    .map((day) => (
+                      <TableRow key={day.fullDate}>
+                        <TableCell className="font-medium">{day.date}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(day.POS)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(day["E-Commerce"])}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(day["Uber Eats"])}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(day.DoorDash)}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(day.total)}</TableCell>
+                        <TableCell className="text-right">{day.orders}</TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
+              {dailySummary.length > DAILY_PAGE_SIZE && (
+                <div className="flex items-center justify-between border-t pt-4 mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {dailyPage * DAILY_PAGE_SIZE + 1}–{Math.min((dailyPage + 1) * DAILY_PAGE_SIZE, dailySummary.length)} of {dailySummary.length} days
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDailyPage((p) => p - 1)}
+                      disabled={dailyPage === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDailyPage((p) => p + 1)}
+                      disabled={(dailyPage + 1) * DAILY_PAGE_SIZE >= dailySummary.length}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
