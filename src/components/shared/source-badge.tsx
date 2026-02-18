@@ -1,6 +1,5 @@
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { OrderSource } from "@/types";
-import { Store, Globe, Car } from "lucide-react";
 
 interface SourceBadgeProps {
   source: OrderSource;
@@ -9,23 +8,21 @@ interface SourceBadgeProps {
 
 const sourceConfig: Record<
   OrderSource,
-  { label: string; variant: "pos" | "ecommerce" | "uber" | "doordash"; icon: React.ElementType }
+  { label: string; colors: string }
 > = {
-  pos: { label: "POS", variant: "pos", icon: Store },
-  ecommerce: { label: "E-Commerce", variant: "ecommerce", icon: Globe },
-  uber_eats: { label: "Uber Eats", variant: "uber", icon: Car },
-  doordash: { label: "DoorDash", variant: "doordash", icon: Car },
+  pos: { label: "In Store", colors: "bg-teal-50 text-teal-600 dark:bg-teal-600/10" },
+  ecommerce: { label: "E-Commerce", colors: "bg-blue-50 text-blue-500 dark:bg-blue-500/10" },
+  uber_eats: { label: "Uber Eats", colors: "bg-slate-50 text-slate-500 dark:bg-slate-500/10" },
+  doordash: { label: "DoorDash", colors: "bg-orange-50 text-orange-500 dark:bg-orange-500/10" },
 };
 
 export function SourceBadge({ source, className }: SourceBadgeProps) {
   const config = sourceConfig[source];
-  const Icon = config.icon;
 
   return (
-    <Badge variant={config.variant} className={className}>
-      <Icon className="h-3 w-3 mr-1" />
+    <span className={cn("inline-block rounded-md px-2.5 py-1 text-xs font-medium", config.colors, className)}>
       {config.label}
-    </Badge>
+    </span>
   );
 }
 

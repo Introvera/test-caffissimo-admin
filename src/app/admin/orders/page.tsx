@@ -2,14 +2,16 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Search,
-  Filter,
-  Eye,
   ChevronLeft,
   ChevronRight,
+  Download,
   ShoppingCart,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MoreVertical,
 } from "lucide-react";
 import {
   useReactTable,
@@ -20,9 +22,11 @@ import {
   flexRender,
   createColumnHelper,
   SortingState,
+  Header,
 } from "@tanstack/react-table";
 import { parseISO, isWithinInterval, startOfDay } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +44,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/shared/page-header";
 import { SourceBadge } from "@/components/shared/source-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -50,6 +60,15 @@ import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Order, OrderSource, OrderStatus } from "@/types";
 
 const columnHelper = createColumnHelper<Order>();
+
+function SortIcon({ header }: { header: Header<Order, unknown> }) {
+  if (!header.column.getCanSort()) return null;
+
+  const sorted = header.column.getIsSorted();
+  if (sorted === "asc") return <ArrowUp className="h-3.5 w-3.5 ml-1" />;
+  if (sorted === "desc") return <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
+}
 
 export default function OrdersPage() {
   const { dateRange, selectedBranchId } = useAppStore();
@@ -80,7 +99,7 @@ export default function OrdersPage() {
         cell: (info) => (
           <Link
             href={`/admin/orders/${info.row.original.id}`}
-            className="font-medium text-primary hover:underline"
+            className="font-normal text-foreground hover:underline"
           >
             {info.getValue()}
           </Link>
@@ -88,27 +107,24 @@ export default function OrdersPage() {
       }),
       columnHelper.accessor("source", {
         header: "Source",
+        enableSorting: false,
         cell: (info) => <SourceBadge source={info.getValue()} />,
       }),
       columnHelper.accessor("branchId", {
         header: "Branch",
+        enableSorting: false,
         cell: (info) => {
           const branch = branches.find((b) => b.id === info.getValue());
           return (
-            <span className="text-sm">
+            <span className="text-sm text-foreground">
               {branch?.name.replace("Caffissimo", "").trim()}
             </span>
           );
         },
       }),
-      columnHelper.accessor("total", {
-        header: "Total",
-        cell: (info) => (
-          <span className="font-medium">{formatCurrency(info.getValue())}</span>
-        ),
-      }),
       columnHelper.accessor("status", {
         header: "Status",
+        enableSorting: false,
         cell: (info) => <StatusBadge status={info.getValue()} />,
       }),
       columnHelper.accessor("createdAt", {
@@ -119,14 +135,29 @@ export default function OrdersPage() {
           </span>
         ),
       }),
+      columnHelper.accessor("total", {
+        header: "Total",
+        cell: (info) => (
+          <span className="font-medium text-foreground">{formatCurrency(info.getValue())}</span>
+        ),
+      }),
       columnHelper.display({
         id: "actions",
         cell: (info) => (
-          <Link href={`/admin/orders/${info.row.original.id}`}>
-            <Button variant="ghost" size="icon">
-              <Eye className="h-4 w-4" />
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/admin/orders/${info.row.original.id}`}>
+                  View
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ),
       }),
     ],
@@ -148,126 +179,174 @@ export default function OrdersPage() {
     },
   });
 
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const totalRows = table.getFilteredRowModel().rows.length;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Orders"
         description="Manage orders from all sources"
+        actions={
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 rounded-lg">
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
+        }
       />
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>All Orders</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by order number..."
-                  value={globalFilter ?? ""}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-8 w-[200px]"
-                />
-              </div>
-              <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Sources</SelectItem>
-                  <SelectItem value="pos">POS</SelectItem>
-                  <SelectItem value="ecommerce">E-Commerce</SelectItem>
-                  <SelectItem value="uber_eats">Uber Eats</SelectItem>
-                  <SelectItem value="doordash">DoorDash</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="preparing">Preparing</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="w-auto h-9 gap-1.5 rounded-lg border-border/80 bg-background px-3.5 text-sm font-medium shadow-none">
+              <SelectValue placeholder="Source" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              <SelectItem value="pos">In Store</SelectItem>
+              <SelectItem value="ecommerce">E-Commerce</SelectItem>
+              <SelectItem value="uber_eats">Uber Eats</SelectItem>
+              <SelectItem value="doordash">DoorDash</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-auto h-9 gap-1.5 rounded-lg border-border/80 bg-background px-3.5 text-sm font-medium shadow-none">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="preparing">Preparing</SelectItem>
+              <SelectItem value="ready">Ready</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by order number..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9 w-[220px] h-9 bg-background rounded-lg"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="p-0">
           {filteredOrders.length === 0 ? (
-            <EmptyState
-              icon={ShoppingCart}
-              title="No orders found"
-              description="Try adjusting your filters or date range"
-            />
+            <div className="p-6">
+              <EmptyState
+                icon={ShoppingCart}
+                title="No orders found"
+                description="Try adjusting your filters or date range"
+              />
+            </div>
           ) : (
             <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <TableHead key={header.id}>
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id} className="hover:bg-transparent border-b border-border/60">
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={
+                            header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : ""
+                          }
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span className="inline-flex items-center">
                             {header.isPlaceholder
                               ? null
                               : flexRender(
                                   header.column.columnDef.header,
                                   header.getContext()
                                 )}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                            <SortIcon header={header} />
+                          </span>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{" "}
-                  {Math.min(
-                    (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                    filteredOrders.length
-                  )}{" "}
-                  of {filteredOrders.length} orders
+                  Showing{" "}
+                  <span className="font-medium text-foreground">
+                    {pageIndex * pageSize + 1}
+                  </span>
+                  {" "}to{" "}
+                  <span className="font-medium text-foreground">
+                    {Math.min((pageIndex + 1) * pageSize, totalRows)}
+                  </span>
+                  {" "}of{" "}
+                  <span className="font-medium text-foreground">{totalRows}</span>
+                  {" "}orders
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8 w-8 p-0"
                     onClick={() => table.previousPage()}
                     disabled={!table.getCanPreviousPage()}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm">
-                    Page {table.getState().pagination.pageIndex + 1} of{" "}
-                    {table.getPageCount()}
-                  </span>
+                  {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
+                    let pageNum: number;
+                    const totalPages = table.getPageCount();
+                    if (totalPages <= 5) {
+                      pageNum = i;
+                    } else if (pageIndex < 3) {
+                      pageNum = i;
+                    } else if (pageIndex > totalPages - 4) {
+                      pageNum = totalPages - 5 + i;
+                    } else {
+                      pageNum = pageIndex - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pageIndex === pageNum ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 w-8 p-0 text-xs"
+                        onClick={() => table.setPageIndex(pageNum)}
+                      >
+                        {pageNum + 1}
+                      </Button>
+                    );
+                  })}
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8 w-8 p-0"
                     onClick={() => table.nextPage()}
                     disabled={!table.getCanNextPage()}
                   >
@@ -277,8 +356,8 @@ export default function OrdersPage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
