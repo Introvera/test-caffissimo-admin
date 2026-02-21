@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Menu, Bell, Search } from "lucide-react";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,10 @@ const roleBadgeVariants: Record<Role, "default" | "secondary" | "outline"> = {
 };
 
 export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState("");
   const {
     currentRole,
     setRole,
@@ -58,6 +64,22 @@ export function Header() {
     setMobileMenuOpen,
     devMode,
   } = useAppStore();
+
+  // Sync header search input with URL when on search page
+  useEffect(() => {
+    if (pathname === "/admin/search") {
+      const q = searchParams.get("q") ?? "";
+      setSearchQuery(q);
+    }
+  }, [pathname, searchParams]);
+
+  const handleAdminSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      router.push(`/admin/search?q=${encodeURIComponent(q)}`);
+    }
+  };
 
   const handleRoleChange = (role: Role) => {
     setRole(role);
@@ -87,28 +109,35 @@ export function Header() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Search (optional, hidden on mobile) */}
-      <div className="hidden md:flex flex-1 max-w-sm">
+      {/* Admin-wide search (hidden on mobile) */}
+      <form
+        onSubmit={handleAdminSearch}
+        className="hidden md:flex flex-1 max-w-sm"
+      >
         <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             type="search"
-            placeholder="Search orders, products..."
-            className="pl-8 w-full"
+            placeholder="Search orders, products, users..."
+            className="pl-8 w-full h-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search admin"
           />
         </div>
-      </div>
+      </form>
 
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
         {/* Date Range Picker */}
         <div className="hidden sm:flex items-center gap-2">
-          <div className="flex rounded-md border">
+          <div className="flex h-9 rounded-md border overflow-hidden">
             {(["today", "7d", "30d"] as const).map((preset) => (
               <button
                 key={preset}
+                type="button"
                 onClick={() => setDateRangePreset(preset)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium transition-colors",
+                  "h-9 px-3 text-xs font-medium transition-colors flex items-center justify-center",
                   dateRangePreset === preset
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
@@ -120,7 +149,7 @@ export function Header() {
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="outline" size="sm" className="h-9 text-xs">
                 {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
               </Button>
             </PopoverTrigger>
@@ -144,7 +173,7 @@ export function Header() {
             value={selectedBranchId || "all"}
             onValueChange={handleBranchChange}
           >
-            <SelectTrigger className="w-[160px] hidden sm:flex">
+            <SelectTrigger className="w-[160px] h-9 hidden sm:flex">
               <SelectValue placeholder="All Branches" />
             </SelectTrigger>
             <SelectContent>
@@ -161,7 +190,7 @@ export function Header() {
         {/* Dev Mode Role Switcher */}
         {devMode && (
           <Select value={currentRole} onValueChange={(v) => handleRoleChange(v as Role)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

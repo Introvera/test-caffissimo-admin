@@ -10,13 +10,14 @@ import {
   ExternalLink,
   Settings,
   Store,
+  Plus,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canManageBranch, canAccessAllBranches } from "@/stores/app-store";
+import { useAppStore, canManageBranch, canAccessAllBranches, canCreateBranch } from "@/stores/app-store";
 import { branches } from "@/data/seed";
 
 export default function BranchesPage() {
@@ -41,17 +42,28 @@ export default function BranchesPage() {
       <PageHeader
         title="Branches"
         description="Manage your coffee shop locations"
+        actions={
+          canCreateBranch(currentRole) && (
+            <Link href="/admin/branches/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Branch
+              </Button>
+            </Link>
+          )
+        }
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredBranches.map((branch, index) => (
           <motion.div
             key={branch.id}
+            className="h-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="overflow-hidden">
+            <Card className="h-full flex flex-col overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -61,7 +73,10 @@ export default function BranchesPage() {
                     <div>
                       <CardTitle className="text-lg">{branch.name}</CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant={branch.isOpen ? "success" : "secondary"}>
+                        <Badge
+                          variant={branch.isOpen ? "success" : "secondary"}
+                          className={branch.isOpen ? "bg-primary/10 !text-primary border-primary/20" : undefined}
+                        >
                           {branch.isOpen ? "Open" : "Closed"}
                         </Badge>
                       </div>
@@ -72,10 +87,10 @@ export default function BranchesPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <CardContent className="flex-1 flex flex-col space-y-4">
+                <div className="space-y-2 text-sm flex-1">
+                  <div className="flex items-start gap-2 min-h-10">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                     <span className="text-muted-foreground">{branch.address}</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -122,7 +137,7 @@ export default function BranchesPage() {
                   )}
                 </div>
 
-                <Link href={`/admin/branches/${branch.id}`}>
+                <Link href={`/admin/branches/${branch.id}`} className="mt-auto">
                   <Button variant="outline" className="w-full">
                     <Settings className="h-4 w-4 mr-2" />
                     Manage Branch

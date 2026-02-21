@@ -26,6 +26,10 @@ export interface Branch {
   };
   uberEatsUrl?: string;
   doorDashUrl?: string;
+  /** API key for Uber Eats integration (store securely) */
+  uberEatsApiKey?: string;
+  /** API key for DoorDash integration (store securely) */
+  doorDashApiKey?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,7 +123,7 @@ export interface ExternalSalesEntry {
 }
 
 // ============== OFFERS ==============
-export type DiscountType = "percent" | "fixed";
+export type DiscountType = "percent" | "fixed" | "item_wise";
 
 export interface Offer {
   id: string;
@@ -127,6 +131,10 @@ export interface Offer {
   description: string;
   discountType: DiscountType;
   discountValue: number;
+  /** For item_wise: buy this many items */
+  buyQuantity?: number;
+  /** For item_wise: get this many (e.g. free or discounted) */
+  getQuantity?: number;
   startDate: string;
   endDate: string;
   productIds?: string[];
@@ -167,6 +175,26 @@ export interface AttendanceEntry {
   checkOut?: string;
   notes?: string;
   createdAt: string;
+}
+
+// ============== POS LOGIN / LOGOUT REPORT ==============
+/** A single login → logout session (cashiers are auto-logged out after 10 min inactivity) */
+export interface POSSession {
+  loginAt: string; // time e.g. "08:00"
+  logoutAt: string;
+  autoLogout?: boolean;
+}
+
+/** Per-user, per-day summary: first login, last logout, and all sessions in between */
+export interface POSDayRecord {
+  id: string;
+  branchId: string;
+  userId: string;
+  userName: string;
+  date: string;
+  firstLogin: string;
+  lastLogout: string;
+  sessions: POSSession[];
 }
 
 // ============== AUDIT LOGS ==============

@@ -1,40 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import {
-  Plus,
   Search,
-  Clock,
   Download,
   Calendar,
-  User,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
+  DoorOpen,
+  DoorClosed,
+  LogIn,
+  LogOut,
+  Monitor,
 } from "lucide-react";
 import { parseISO, format, isWithinInterval, startOfDay } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -43,81 +23,68 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useAppStore, canViewAttendance, canAccessAllBranches } from "@/stores/app-store";
-import { attendanceEntries, branches, users } from "@/data/seed";
+import { posDayRecords, branches } from "@/data/seed";
 import { formatDate } from "@/lib/utils";
-import { AttendanceStatus } from "@/types";
+import { POSDayRecord } from "@/types";
 
-const statusConfig: Record<AttendanceStatus, { label: string; variant: "success" | "destructive" | "warning" | "secondary"; icon: typeof CheckCircle }> = {
-  present: { label: "Present", variant: "success", icon: CheckCircle },
-  absent: { label: "Absent", variant: "destructive", icon: XCircle },
-  late: { label: "Late", variant: "warning", icon: AlertCircle },
-  half_day: { label: "Half Day", variant: "secondary", icon: Clock },
-};
+const PAGE_TITLE = "POS Login / Logout Report";
+const PAGE_DESCRIPTION = "First login and last logout times per day. Inactive cashiers are auto-logged out after 10 minutes.";
 
-export default function AttendancePage() {
+export default function POSLoginReportPage() {
   const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppStore();
   const [searchQuery, setSearchQuery] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<POSDayRecord | null>(null);
 
   const effectiveBranchId = selectedBranchId || assignedBranchId;
   const canView = canViewAttendance(currentRole);
 
-  const filteredAttendance = useMemo(() => {
-    return attendanceEntries.filter((entry) => {
-      const entryDate = parseISO(entry.date);
-      const inDateRange = isWithinInterval(entryDate, {
+  const filteredRecords = useMemo(() => {
+    return posDayRecords.filter((record) => {
+      const recordDate = parseISO(record.date);
+      const inDateRange = isWithinInterval(recordDate, {
         start: startOfDay(dateRange.from),
         end: dateRange.to,
       });
-      const inBranch = !effectiveBranchId || entry.branchId === effectiveBranchId;
+      const inBranch = !effectiveBranchId || record.branchId === effectiveBranchId;
       const matchesSearch =
         !searchQuery ||
-        entry.userName.toLowerCase().includes(searchQuery.toLowerCase());
-
+        record.userName.toLowerCase().includes(searchQuery.toLowerCase());
       return inDateRange && inBranch && matchesSearch;
     });
   }, [dateRange, effectiveBranchId, searchQuery]);
 
-  // Group by date
   const groupedByDate = useMemo(() => {
-    const groups: Record<string, typeof filteredAttendance> = {};
-    filteredAttendance.forEach((entry) => {
-      if (!groups[entry.date]) {
-        groups[entry.date] = [];
-      }
-      groups[entry.date].push(entry);
+    const groups: Record<string, POSDayRecord[]> = {};
+    filteredRecords.forEach((record) => {
+      if (!groups[record.date]) groups[record.date] = [];
+      groups[record.date].push(record);
     });
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [filteredAttendance]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const total = filteredAttendance.length;
-    const present = filteredAttendance.filter((e) => e.status === "present").length;
-    const absent = filteredAttendance.filter((e) => e.status === "absent").length;
-    const late = filteredAttendance.filter((e) => e.status === "late").length;
-    return { total, present, absent, late };
-  }, [filteredAttendance]);
+  }, [filteredRecords]);
 
   const getBranchName = (branchId: string) => {
     return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
   };
 
-  const staffUsers = users.filter((u) => u.role === "cashier" || u.role === "supervisor");
-
   if (!canView) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Attendance" />
+        <PageHeader title={PAGE_TITLE} />
         <Card>
           <CardContent className="py-12">
             <EmptyState
-              icon={Clock}
+              icon={Monitor}
               title="Access Denied"
-              description="You don't have permission to view attendance records"
+              description="You don't have permission to view this report"
             />
           </CardContent>
         </Card>
@@ -128,214 +95,139 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Attendance"
-        description="Track employee attendance records"
+        title={PAGE_TITLE}
+        description={PAGE_DESCRIPTION}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Entry
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Attendance Entry</DialogTitle>
-                  <DialogDescription>
-                    Record attendance for an employee
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Employee</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {staffUsers.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Date</Label>
-                    <Input type="date" defaultValue={format(new Date(), "yyyy-MM-dd")} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select defaultValue="present">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="present">Present</SelectItem>
-                        <SelectItem value="absent">Absent</SelectItem>
-                        <SelectItem value="late">Late</SelectItem>
-                        <SelectItem value="half_day">Half Day</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Check In</Label>
-                      <Input type="time" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Check Out</Label>
-                      <Input type="time" />
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => setAddDialogOpen(false)}>
-                    Add Entry
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        }
-      />
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-muted p-2">
-                <User className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Entries</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-primary/10 p-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Present</p>
-                <p className="text-2xl font-bold">{stats.present}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-destructive/10 p-2">
-                <XCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Absent</p>
-                <p className="text-2xl font-bold">{stats.absent}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-amber-100 dark:bg-amber-900/30 p-2">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Late</p>
-                <p className="text-2xl font-bold">{stats.late}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Attendance Records</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-[200px]"
+                className="pl-8 w-[200px] h-9"
               />
             </div>
+            <Button variant="outline" size="sm" className="h-9">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {groupedByDate.length === 0 ? (
+        }
+      />
+
+      {groupedByDate.length === 0 ? (
+        <Card>
+          <CardContent>
             <EmptyState
-              icon={Clock}
-              title="No attendance records"
-              description="Add attendance entries to track employee presence"
+              icon={Monitor}
+              title="No login records"
+              description="POS login and logout data will appear here"
             />
-          ) : (
-            <div className="space-y-6">
-              {groupedByDate.map(([date, entries]) => (
-                <div key={date}>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {formatDate(date)}
-                  </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Employee</TableHead>
-                        {canAccessAllBranches(currentRole) && <TableHead>Branch</TableHead>}
-                        <TableHead>Status</TableHead>
-                        <TableHead>Check In</TableHead>
-                        <TableHead>Check Out</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entries.map((entry) => {
-                        const config = statusConfig[entry.status];
-                        const Icon = config.icon;
-                        return (
-                          <TableRow key={entry.id}>
-                            <TableCell className="font-medium">
-                              {entry.userName}
-                            </TableCell>
-                            {canAccessAllBranches(currentRole) && (
-                              <TableCell>{getBranchName(entry.branchId)}</TableCell>
-                            )}
-                            <TableCell>
-                              <Badge variant={config.variant}>
-                                <Icon className="h-3 w-3 mr-1" />
-                                {config.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{entry.checkIn || "-"}</TableCell>
-                            <TableCell>{entry.checkOut || "-"}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              ))}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {groupedByDate.map(([date, records]) => (
+            <div key={date}>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {formatDate(date)}
+              </h3>
+              <Table className="table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-auto">Employee</TableHead>
+                    {canAccessAllBranches(currentRole) && <TableHead className="w-auto">Branch</TableHead>}
+                    <TableHead className="w-[120px]">First login</TableHead>
+                    <TableHead className="w-[120px]">Last logout</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {records.map((record) => (
+                    <TableRow
+                      key={record.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedRecord(record)}
+                    >
+                      <TableCell className="font-medium">
+                        {record.userName}
+                      </TableCell>
+                      {canAccessAllBranches(currentRole) && (
+                        <TableCell>{getBranchName(record.branchId)}</TableCell>
+                      )}
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <DoorOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                          {record.firstLogin}
+                        </span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <DoorClosed className="h-4 w-4 text-muted-foreground shrink-0" />
+                          {record.lastLogout}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal: all login/logout sessions for the selected row */}
+      <Dialog open={!!selectedRecord} onOpenChange={() => setSelectedRecord(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Session details</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {selectedRecord && (
+                <>
+                  {selectedRecord.userName} — {formatDate(selectedRecord.date)}
+                </>
+              )}
+            </p>
+          </DialogHeader>
+          {selectedRecord && (
+            <div className="space-y-3 pt-2">
+              <p className="text-xs text-muted-foreground">
+                All login and logout times for this day. System auto-logs out after 10 min of no activity.
+              </p>
+              <div className="rounded-lg border divide-y">
+                {selectedRecord.sessions.map((session, i) => {
+                  const isFirst = i === 0;
+                  const isLast = i === selectedRecord.sessions.length - 1;
+                  const LoginIcon = isFirst ? DoorOpen : LogIn;
+                  const LogoutIcon = isLast ? DoorClosed : LogOut;
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-4 py-3 text-sm"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <LoginIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        {session.loginAt}
+                      </span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="inline-flex items-center gap-2">
+                        <LogoutIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        {session.logoutAt}
+                        {session.autoLogout && (
+                          <span className="text-xs text-amber-600 dark:text-amber-400">
+                            (auto)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

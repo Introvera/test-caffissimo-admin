@@ -1,16 +1,30 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import {
   Search,
+  ChevronLeft,
+  ChevronRight,
   FileSearch,
   Clock,
   User,
-  Filter,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  flexRender,
+  createColumnHelper,
+  SortingState,
+  Header,
+} from "@tanstack/react-table";
 import { parseISO, isWithinInterval, startOfDay } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +48,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { useAppStore, canViewAuditLogs } from "@/stores/app-store";
 import { auditLogs, branches } from "@/data/seed";
 import { formatDateTime } from "@/lib/utils";
-import { AuditAction } from "@/types";
+import { AuditLog, AuditAction } from "@/types";
 
 const actionLabels: Record<AuditAction, string> = {
   price_change: "Price Changed",
@@ -64,9 +78,26 @@ const actionBadgeVariants: Record<AuditAction, "default" | "secondary" | "destru
   settings_updated: "secondary",
 };
 
+const columnHelper = createColumnHelper<AuditLog>();
+
+function SortIcon({ header }: { header: Header<AuditLog, unknown> }) {
+  if (!header.column.getCanSort()) return null;
+  const sorted = header.column.getIsSorted();
+  if (sorted === "asc") return <ArrowUp className="h-3.5 w-3.5 ml-1" />;
+  if (sorted === "desc") return <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  return <ArrowUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
+}
+
+function formatDetails(details: Record<string, unknown>) {
+  return Object.entries(details)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(", ");
+}
+
 export default function AuditLogsPage() {
   const { currentRole, selectedBranchId, dateRange } = useAppStore();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
 
   const canView = canViewAuditLogs(currentRole);
@@ -80,25 +111,100 @@ export default function AuditLogsPage() {
       });
       const inBranch = !selectedBranchId || log.branchId === selectedBranchId;
       const matchesSearch =
-        !searchQuery ||
-        log.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.entityType.toLowerCase().includes(searchQuery.toLowerCase());
+        !globalFilter ||
+        log.userName.toLowerCase().includes(globalFilter.toLowerCase()) ||
+        log.entityType.toLowerCase().includes(globalFilter.toLowerCase());
       const matchesAction = actionFilter === "all" || log.action === actionFilter;
-
       return inDateRange && inBranch && matchesSearch && matchesAction;
     });
-  }, [dateRange, selectedBranchId, searchQuery, actionFilter]);
+  }, [dateRange, selectedBranchId, globalFilter, actionFilter]);
 
   const getBranchName = (branchId?: string) => {
     if (!branchId) return "-";
     return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
   };
 
-  const formatDetails = (details: Record<string, unknown>) => {
-    return Object.entries(details)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(", ");
-  };
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("createdAt", {
+        header: "Timestamp",
+        cell: (info) => (
+          <span className="text-sm text-muted-foreground inline-flex items-center gap-2">
+            <Clock className="h-3 w-3" />
+            {formatDateTime(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("action", {
+        header: "Action",
+        enableSorting: false,
+        cell: (info) => (
+          <Badge variant={actionBadgeVariants[info.getValue()]}>
+            {actionLabels[info.getValue()]}
+          </Badge>
+        ),
+      }),
+      columnHelper.accessor("userName", {
+        header: "User",
+        enableSorting: false,
+        cell: (info) => (
+          <span className="inline-flex items-center gap-2 text-sm text-foreground">
+            <User className="h-3 w-3 text-muted-foreground" />
+            {info.getValue()}
+          </span>
+        ),
+      }),
+      columnHelper.accessor((row) => `${row.entityType} ${row.entityId}`, {
+        id: "entity",
+        header: "Entity",
+        enableSorting: false,
+        cell: (info) => (
+          <span className="text-sm text-foreground">
+            {info.row.original.entityType}
+            <span className="text-muted-foreground"> #{info.row.original.entityId.split("-").pop()}</span>
+          </span>
+        ),
+      }),
+      columnHelper.accessor("branchId", {
+        header: "Branch",
+        enableSorting: false,
+        cell: (info) => (
+          <span className="text-sm text-foreground">
+            {getBranchName(info.getValue())}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("details", {
+        header: "Details",
+        enableSorting: false,
+        cell: (info) => (
+          <span className="text-xs text-muted-foreground truncate block max-w-[200px]">
+            {formatDetails(info.getValue())}
+          </span>
+        ),
+      }),
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: filteredLogs,
+    columns,
+    state: { sorting, globalFilter },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    initialState: {
+      pagination: { pageSize: 10 },
+    },
+  });
+
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const totalRows = table.getFilteredRowModel().rows.length;
 
   if (!canView) {
     return (
@@ -124,102 +230,158 @@ export default function AuditLogsPage() {
         description="Track all system changes and activities"
       />
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Activity Log</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search logs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-[200px]"
-                />
-              </div>
-              <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Action" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Actions</SelectItem>
-                  {Object.entries(actionLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+      {/* Filter Bar - same layout as Orders */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Select value={actionFilter} onValueChange={setActionFilter}>
+            <SelectTrigger className="w-auto h-9 gap-1.5 rounded-lg border-border/80 bg-background px-3.5 text-sm font-medium shadow-none">
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Actions</SelectItem>
+              {Object.entries(actionLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search logs..."
+            value={globalFilter ?? ""}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9 w-[220px] h-9 bg-background rounded-lg"
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="p-0">
           {filteredLogs.length === 0 ? (
-            <EmptyState
-              icon={FileSearch}
-              title="No logs found"
-              description="Try adjusting your search or filters"
-            />
+            <div className="p-6">
+              <EmptyState
+                icon={FileSearch}
+                title="No logs found"
+                description="Try adjusting your search or filters"
+              />
+            </div>
           ) : (
-            <div className="rounded-md border">
+            <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Details</TableHead>
-                  </TableRow>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow
+                      key={headerGroup.id}
+                      className="hover:bg-transparent border-b border-border/60"
+                    >
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={
+                            header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : ""
+                          }
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <span className="inline-flex items-center">
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                            <SortIcon header={header} />
+                          </span>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.map((log, index) => (
-                    <motion.tr
-                      key={log.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.02 }}
-                      className="border-b transition-colors hover:bg-muted/50"
-                    >
-                      <TableCell className="text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          {formatDateTime(log.createdAt)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={actionBadgeVariants[log.action]}>
-                          {actionLabels[log.action]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          {log.userName}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {log.entityType}
-                          <span className="text-muted-foreground"> #{log.entityId.split("-").pop()}</span>
-                        </span>
-                      </TableCell>
-                      <TableCell>{getBranchName(log.branchId)}</TableCell>
-                      <TableCell className="max-w-[200px]">
-                        <span className="text-xs text-muted-foreground truncate block">
-                          {formatDetails(log.details)}
-                        </span>
-                      </TableCell>
-                    </motion.tr>
+                  {table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+
+              {/* Pagination - same as Orders */}
+              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-medium text-foreground">
+                    {pageIndex * pageSize + 1}
+                  </span>
+                  {" "}to{" "}
+                  <span className="font-medium text-foreground">
+                    {Math.min((pageIndex + 1) * pageSize, totalRows)}
+                  </span>
+                  {" "}of{" "}
+                  <span className="font-medium text-foreground">{totalRows}</span>
+                  {" "}logs
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
+                    let pageNum: number;
+                    const totalPages = table.getPageCount();
+                    if (totalPages <= 5) {
+                      pageNum = i;
+                    } else if (pageIndex < 3) {
+                      pageNum = i;
+                    } else if (pageIndex > totalPages - 4) {
+                      pageNum = totalPages - 5 + i;
+                    } else {
+                      pageNum = pageIndex - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pageIndex === pageNum ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 w-8 p-0 text-xs"
+                        onClick={() => table.setPageIndex(pageNum)}
+                      >
+                        {pageNum + 1}
+                      </Button>
+                    );
+                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

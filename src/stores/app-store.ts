@@ -117,6 +117,10 @@ export const canManageBranch = (role: Role): boolean => {
   return isAdmin(role);
 };
 
+export const canCreateBranch = (role: Role): boolean => {
+  return role === "super_admin";
+};
+
 export const canViewReports = (role: Role): boolean => {
   return isAdmin(role);
 };

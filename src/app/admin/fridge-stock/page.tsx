@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Thermometer, Calendar, FileText } from "lucide-react";
+import { Plus, Thermometer, Calendar, FileText } from "lucide-react";
 import { parseISO, format, isWithinInterval, startOfDay } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ const FRIDGE_UNITS = [
 
 export default function FridgeStockPage() {
   const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppStore();
-  const [searchQuery, setSearchQuery] = useState("");
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [temperatureValues, setTemperatureValues] = useState<Record<string, number>>({});
 
@@ -55,14 +54,9 @@ export default function FridgeStockPage() {
         end: dateRange.to,
       });
       const inBranch = !effectiveBranchId || report.branchId === effectiveBranchId;
-      const matchesSearch =
-        !searchQuery ||
-        report.submittedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.notes?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return inDateRange && inBranch && matchesSearch;
+      return inDateRange && inBranch;
     });
-  }, [dateRange, effectiveBranchId, searchQuery]);
+  }, [dateRange, effectiveBranchId]);
 
   const getBranchName = (branchId: string) => {
     return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
@@ -170,23 +164,9 @@ export default function FridgeStockPage() {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Temperature Report History</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search reports..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-[200px]"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredReports.length === 0 ? (
+      {filteredReports.length === 0 ? (
+        <Card>
+          <CardContent>
             <EmptyState
               icon={Thermometer}
               title="No reports found"
@@ -200,63 +180,63 @@ export default function FridgeStockPage() {
                 )
               }
             />
-          ) : (
-            <div className="space-y-4">
-              {filteredReports.map((report, index) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Calendar className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base">
-                              {formatDate(report.date)}
-                            </CardTitle>
-                            <CardDescription>
-                              {getBranchName(report.branchId)} &bull; Submitted by {report.submittedBy}
-                            </CardDescription>
-                          </div>
-                        </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredReports.map((report, index) => (
+            <motion.div
+              key={report.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-primary" />
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {report.temperatures.map((entry) => (
-                          <div
-                            key={entry.name}
-                            className={`text-center p-3 rounded-lg ${getTemperatureColor(entry.temperature)}`}
-                          >
-                            <p className="text-2xl font-bold">{entry.temperature}°F</p>
-                            <p className="text-xs line-clamp-2 mt-1">
-                              {entry.name}
-                            </p>
-                          </div>
-                        ))}
+                      <div>
+                        <CardTitle className="text-base">
+                          {formatDate(report.date)}
+                        </CardTitle>
+                        <CardDescription>
+                          {getBranchName(report.branchId)} &bull; Submitted by {report.submittedBy}
+                        </CardDescription>
                       </div>
-                      {report.notes && (
-                        <div className="mt-4 p-3 rounded-lg bg-muted/50">
-                          <p className="text-sm text-muted-foreground">
-                            <FileText className="h-4 w-4 inline mr-1" />
-                            {report.notes}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {report.temperatures.map((entry) => (
+                      <div
+                        key={entry.name}
+                        className={`text-center p-3 rounded-lg ${getTemperatureColor(entry.temperature)}`}
+                      >
+                        <p className="text-2xl font-bold">{entry.temperature}°F</p>
+                        <p className="text-xs line-clamp-2 mt-1">
+                          {entry.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  {report.notes && (
+                    <div className="mt-4 p-3 rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground">
+                        <FileText className="h-4 w-4 inline mr-1" />
+                        {report.notes}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

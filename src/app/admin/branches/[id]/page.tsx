@@ -1,8 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Mail, Save, ExternalLink } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Mail, Save, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
 
   const branch = branches.find((b) => b.id === resolvedParams.id);
   const canEdit = canManageBranch(currentRole);
+  const [showUberApiKey, setShowUberApiKey] = useState(false);
+  const [showDoorApiKey, setShowDoorApiKey] = useState(false);
 
   if (!branch) {
     return (
@@ -137,44 +139,94 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Delivery Platform Links</CardTitle>
-              <CardDescription>External delivery platform URLs for this branch</CardDescription>
+              <CardTitle>Delivery platform</CardTitle>
+              <CardDescription>URLs and API keys for Uber Eats and DoorDash</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Uber Eats URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    defaultValue={branch.uberEatsUrl}
-                    placeholder="https://ubereats.com/..."
-                    disabled={!canEdit}
-                    className="flex-1"
-                  />
-                  {branch.uberEatsUrl && (
-                    <a href={branch.uberEatsUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="icon">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  )}
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Uber Eats URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      defaultValue={branch.uberEatsUrl}
+                      placeholder="https://ubereats.com/..."
+                      disabled={!canEdit}
+                      className="flex-1"
+                    />
+                    {branch.uberEatsUrl && (
+                      <a href={branch.uberEatsUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="icon">
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>DoorDash URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      defaultValue={branch.doorDashUrl}
+                      placeholder="https://doordash.com/..."
+                      disabled={!canEdit}
+                      className="flex-1"
+                    />
+                    {branch.doorDashUrl && (
+                      <a href={branch.doorDashUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="icon">
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>DoorDash URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    defaultValue={branch.doorDashUrl}
-                    placeholder="https://doordash.com/..."
-                    disabled={!canEdit}
-                    className="flex-1"
-                  />
-                  {branch.doorDashUrl && (
-                    <a href={branch.doorDashUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="icon">
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </a>
-                  )}
+              <div className="space-y-4 pt-2 border-t">
+                <p className="text-sm font-medium">API keys</p>
+                <p className="text-sm text-muted-foreground">
+                  Used to sync orders and menu. Leave blank to keep existing key.
+                </p>
+                <div className="space-y-2">
+                  <Label>Uber Eats API key</Label>
+                  <div className="relative">
+                    <Input
+                      type={showUberApiKey ? "text" : "password"}
+                      autoComplete="off"
+                      placeholder={branch.uberEatsApiKey ? "••••••••••••" : "Enter API key (optional)"}
+                      disabled={!canEdit}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowUberApiKey(!showUberApiKey)}
+                      disabled={!canEdit}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      aria-label={showUberApiKey ? "Hide key" : "Show key"}
+                    >
+                      {showUberApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>DoorDash API key</Label>
+                  <div className="relative">
+                    <Input
+                      type={showDoorApiKey ? "text" : "password"}
+                      autoComplete="off"
+                      placeholder={branch.doorDashApiKey ? "••••••••••••" : "Enter API key (optional)"}
+                      disabled={!canEdit}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDoorApiKey(!showDoorApiKey)}
+                      disabled={!canEdit}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      aria-label={showDoorApiKey ? "Hide key" : "Show key"}
+                    >
+                      {showDoorApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </CardContent>

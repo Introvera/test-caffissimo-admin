@@ -281,13 +281,17 @@ export default function DashboardPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value) => formatCurrency(Number(value))}
+                    wrapperStyle={{ zIndex: 9999 }}
                     contentStyle={{
-                      backgroundColor: "#232323",
-                      color: "#FFFFFF",
-                      border: "none",
+                      backgroundColor: "hsl(0 0% 9%)",
+                      color: "hsl(0 0% 98%)",
+                      border: "1px solid hsl(0 0% 20%)",
                       borderRadius: "var(--radius)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                      padding: "8px 12px",
                     }}
-                    labelStyle={{ color: "#9B9B9B" }}
+                    labelStyle={{ color: "hsl(0 0% 65%)" }}
+                    itemStyle={{ color: "hsl(0 0% 98%)" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -330,13 +334,17 @@ export default function DashboardPage() {
                   <YAxis className="text-xs" tickFormatter={(v) => `$${v}`} />
                   <Tooltip
                     formatter={(value) => formatCurrency(Number(value))}
+                    wrapperStyle={{ zIndex: 9999 }}
                     contentStyle={{
-                      backgroundColor: "#232323",
-                      color: "#FFFFFF",
-                      border: "none",
+                      backgroundColor: "hsl(0 0% 9%)",
+                      color: "hsl(0 0% 98%)",
+                      border: "1px solid hsl(0 0% 20%)",
                       borderRadius: "var(--radius)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                      padding: "8px 12px",
                     }}
-                    labelStyle={{ color: "#9B9B9B" }}
+                    labelStyle={{ color: "hsl(0 0% 65%)" }}
+                    itemStyle={{ color: "hsl(0 0% 98%)" }}
                   />
                   <Area
                     type="monotone"

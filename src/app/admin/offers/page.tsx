@@ -9,6 +9,7 @@ import {
   DollarSign,
   Edit,
   Tags,
+  Gift,
 } from "lucide-react";
 import { format, parseISO, isBefore, isAfter } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,9 +43,14 @@ import { offers, branches, categories, products } from "@/data/seed";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Offer } from "@/types";
 
+type FormDiscountType = "percent" | "fixed" | "item_wise";
+
 export default function OffersPage() {
   const { currentRole, selectedBranchId } = useAppStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [formDiscountType, setFormDiscountType] = useState<FormDiscountType>("percent");
+  const [formBuyQuantity, setFormBuyQuantity] = useState(1);
+  const [formGetQuantity, setFormGetQuantity] = useState(1);
 
   const canManage = canManageOffers(currentRole);
 
@@ -119,13 +125,17 @@ export default function OffersPage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Discount Type</Label>
-                      <Select defaultValue="percent">
+                      <Select
+                        value={formDiscountType}
+                        onValueChange={(v) => setFormDiscountType(v as FormDiscountType)}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="percent">Percentage Off</SelectItem>
                           <SelectItem value="fixed">Fixed Amount</SelectItem>
+                          <SelectItem value="item_wise">Item Wise (Buy One Get One)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -135,10 +145,34 @@ export default function OffersPage() {
                     <Textarea placeholder="Describe the offer..." />
                   </div>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Discount Value</Label>
-                      <Input type="number" placeholder="20" />
-                    </div>
+                    {formDiscountType === "item_wise" ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Buy (quantity)</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={formBuyQuantity}
+                            onChange={(e) => setFormBuyQuantity(Number(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Get (quantity)</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={formGetQuantity}
+                            onChange={(e) => setFormGetQuantity(Number(e.target.value) || 1)}
+                          />
+                        </div>
+                        <div className="space-y-2" />
+                      </>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>Discount Value</Label>
+                        <Input type="number" placeholder="20" />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>Start Date</Label>
                       <Input type="date" />
@@ -231,6 +265,8 @@ export default function OffersPage() {
                         <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10">
                           {offer.discountType === "percent" ? (
                             <Percent className="h-5 w-5 text-primary" />
+                          ) : offer.discountType === "item_wise" ? (
+                            <Gift className="h-5 w-5 text-primary" />
                           ) : (
                             <DollarSign className="h-5 w-5 text-primary" />
                           )}
@@ -257,6 +293,10 @@ export default function OffersPage() {
                         {offer.discountType === "percent" ? (
                           <span className="font-semibold text-lg text-primary">
                             {offer.discountValue}% OFF
+                          </span>
+                        ) : offer.discountType === "item_wise" ? (
+                          <span className="font-semibold text-lg text-primary">
+                            Buy {offer.buyQuantity ?? 1} Get {offer.getQuantity ?? 1}
                           </span>
                         ) : (
                           <span className="font-semibold text-lg text-primary">

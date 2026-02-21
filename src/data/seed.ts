@@ -11,6 +11,8 @@ import {
   Offer,
   FridgeStockReport,
   AttendanceEntry,
+  POSDayRecord,
+  POSSession,
   AuditLog,
   ExternalSalesEntry,
 } from "@/types";
@@ -383,6 +385,22 @@ export const offers: Offer[] = [
     createdAt: subDays(BASE_DATE, 60).toISOString(),
     updatedAt: subDays(BASE_DATE, 60).toISOString(),
   },
+  {
+    id: "offer-4",
+    name: "Buy One Get One Pastry",
+    description: "Buy one pastry, get one free of equal or lesser value",
+    discountType: "item_wise",
+    discountValue: 0,
+    buyQuantity: 1,
+    getQuantity: 1,
+    startDate: subDays(BASE_DATE, 3).toISOString(),
+    endDate: addHours(BASE_DATE, 24 * 14).toISOString(),
+    categoryIds: ["cat-4"],
+    branchIds: ["branch-1", "branch-2"],
+    isActive: true,
+    createdAt: subDays(BASE_DATE, 3).toISOString(),
+    updatedAt: subDays(BASE_DATE, 3).toISOString(),
+  },
 ];
 
 // ============== FRIDGE STOCK REPORTS ==============
@@ -458,6 +476,52 @@ function generateAttendance(): AttendanceEntry[] {
 }
 
 export const attendanceEntries = generateAttendance();
+
+// ============== POS LOGIN / LOGOUT REPORT ==============
+function generatePOSDayRecords(): POSDayRecord[] {
+  const records: POSDayRecord[] = [];
+  const staffUsers = users.filter((u) => u.role === "cashier" || u.role === "supervisor");
+
+  let seed = 300;
+  for (let daysAgo = 0; daysAgo < 14; daysAgo++) {
+    const date = subDays(BASE_DATE, daysAgo);
+    const dateStr = format(date, "yyyy-MM-dd");
+
+    for (const user of staffUsers) {
+      const numSessions = 2 + ((seed++ * 7) % 3);
+      const sessions: POSSession[] = [];
+
+      for (let s = 0; s < numSessions; s++) {
+        const loginH = 7 + ((seed + s) % 3);
+        const loginM = (seed * (s + 1)) % 60;
+        const logoutH = loginH + 1 + (s % 2);
+        const logoutM = (seed * (s + 2)) % 60;
+        const loginAt = `${loginH.toString().padStart(2, "0")}:${loginM.toString().padStart(2, "0")}`;
+        const logoutAt = `${logoutH.toString().padStart(2, "0")}:${logoutM.toString().padStart(2, "0")}`;
+        const autoLogout = s > 0 && (seed + s) % 4 === 0;
+        sessions.push({ loginAt, logoutAt, autoLogout });
+      }
+
+      const firstLogin = sessions.length ? sessions.reduce((a, b) => (a.loginAt < b.loginAt ? a : b)).loginAt : "—";
+      const lastLogout = sessions.length ? sessions.reduce((a, b) => (a.logoutAt > b.logoutAt ? a : b)).logoutAt : "—";
+
+      records.push({
+        id: `pos-${user.id}-${dateStr}`,
+        branchId: user.branchId!,
+        userId: user.id,
+        userName: user.name,
+        date: dateStr,
+        firstLogin,
+        lastLogout,
+        sessions,
+      });
+    }
+  }
+
+  return records;
+}
+
+export const posDayRecords = generatePOSDayRecords();
 
 // ============== AUDIT LOGS ==============
 function generateAuditLogs(): AuditLog[] {
