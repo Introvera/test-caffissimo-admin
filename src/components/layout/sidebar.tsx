@@ -313,21 +313,33 @@ export function Sidebar() {
     );
   };
 
+  const [logoError, setLogoError] = useState(false);
+
   const sidebarContent = (collapsed: boolean) => (
     <div className="flex h-full flex-col">
       <div
         className={cn(
-          "flex h-16 items-center border-b px-4",
+          "flex h-20 items-center border-b px-4",
           collapsed && "justify-center px-2"
         )}
       >
-        <Link href="/admin/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Coffee className="h-5 w-5 text-primary-foreground" />
+        <Link href="/admin/dashboard" className="flex items-center overflow-hidden">
+          <div className="relative flex h-14 min-w-[100px] shrink-0 items-center justify-start">
+            {logoError ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                <Coffee className="h-6 w-6 text-primary-foreground" />
+              </div>
+            ) : (
+              <div className="flex h-14 items-center rounded-lg bg-zinc-900 px-2 dark:bg-transparent dark:px-0">
+                <img
+                  src="/logo.jpg"
+                  alt="Caffissimo"
+                  className="h-12 w-auto max-w-[220px] object-contain object-left opacity-95 dark:mix-blend-lighten"
+                  onError={() => setLogoError(true)}
+                />
+              </div>
+            )}
           </div>
-          {!collapsed && (
-            <span className="text-lg font-bold">Caffissimo</span>
-          )}
         </Link>
       </div>
 

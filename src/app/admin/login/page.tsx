@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Coffee, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,8 +66,12 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary flex items-center justify-center">
-            <Coffee className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex h-24 items-center justify-center rounded-xl bg-zinc-900 p-3 dark:bg-transparent dark:p-0">
+            <img
+              src="/logo.jpg"
+              alt="Caffissimo"
+              className="h-24 w-auto max-w-[320px] object-contain opacity-95 dark:mix-blend-lighten"
+            />
           </div>
           <CardTitle className="text-2xl">Caffissimo Admin</CardTitle>
           <CardDescription>
