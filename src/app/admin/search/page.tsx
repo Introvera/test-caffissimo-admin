@@ -47,8 +47,8 @@ function SearchResultsContent() {
     );
     const matchProducts = products.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.description && p.description.toLowerCase().includes(q))
+        p.productName.toLowerCase().includes(q) ||
+        (p.productDescription && p.productDescription.toLowerCase().includes(q))
     );
     const matchUsers = users.filter(
       (u) =>
@@ -57,8 +57,8 @@ function SearchResultsContent() {
     );
     const matchBranches = branches.filter(
       (b) =>
-        b.name.toLowerCase().includes(q) ||
-        (b.address && b.address.toLowerCase().includes(q))
+        b.branchName.toLowerCase().includes(q) ||
+        (b.branchAddress && b.branchAddress.toLowerCase().includes(q))
     );
     const matchLogs = auditLogs.filter(
       (l) =>
@@ -150,12 +150,12 @@ function SearchResultsContent() {
           <CardContent>
             <ul className="space-y-2">
               {results.products.map((product) => (
-                <li key={product.id}>
+                <li key={product.productId}>
                   <Link
                     href="/admin/products"
                     className="flex items-center justify-between rounded-md py-2 px-2 -mx-2 hover:bg-muted text-sm"
                   >
-                    <span className="font-medium">{product.name}</span>
+                    <span className="font-medium">{product.productName}</span>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
                   </Link>
                 </li>
@@ -207,13 +207,13 @@ function SearchResultsContent() {
           <CardContent>
             <ul className="space-y-2">
               {results.branches.map((branch) => (
-                <li key={branch.id}>
+                <li key={branch.branchId}>
                   <Link
-                    href={`/admin/branches/${branch.id}`}
+                    href={`/admin/branches/${branch.branchId}`}
                     className="flex items-center justify-between rounded-md py-2 px-2 -mx-2 hover:bg-muted text-sm"
                   >
                     <span className="font-medium">
-                      {branch.name.replace("Caffissimo", "").trim()}
+                      {branch.branchName.replace("Caffissimo", "").trim()}
                     </span>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2" />
                   </Link>

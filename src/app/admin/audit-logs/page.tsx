@@ -45,7 +45,8 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canViewAuditLogs } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canViewAuditLogs } from "@/lib/rbac";
 import { auditLogs, branches } from "@/data/seed";
 import { formatDateTime } from "@/lib/utils";
 import { AuditLog, AuditAction } from "@/types";
@@ -95,7 +96,7 @@ function formatDetails(details: Record<string, unknown>) {
 }
 
 export default function AuditLogsPage() {
-  const { currentRole, selectedBranchId, dateRange } = useAppStore();
+  const { currentRole, selectedBranchId, dateRange } = useAppSelector((state) => state.ui);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
@@ -121,7 +122,7 @@ export default function AuditLogsPage() {
 
   const getBranchName = (branchId?: string) => {
     if (!branchId) return "-";
-    return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
+    return branches.find((b) => b.branchId === branchId)?.branchName.replace("Caffissimo", "").trim() || "Unknown";
   };
 
   const columns = useMemo(

@@ -34,7 +34,7 @@ import { KPICard } from "@/components/shared/kpi-card";
 import { SourceBadge } from "@/components/shared/source-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAppStore, canAccessAllBranches } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
 import { orders, externalSalesEntries, branches, products, auditLogs } from "@/data/seed";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Order, OrderSource } from "@/types";
@@ -43,7 +43,7 @@ import { Order, OrderSource } from "@/types";
 const COLORS = ["#099699", "#06B6D4", "#64748B", "#94A3B8"];
 
 export default function DashboardPage() {
-  const { dateRange, selectedBranchId, currentRole } = useAppStore();
+  const { dateRange, selectedBranchId } = useAppSelector((state) => state.ui);
 
   // Filter orders by date range and branch
   const filteredOrders = useMemo(() => {
@@ -218,7 +218,7 @@ export default function DashboardPage() {
         title="Dashboard"
         description={
           selectedBranchId
-            ? `${branches.find((b) => b.id === selectedBranchId)?.name} Overview`
+            ? `${branches.find((b) => b.branchId === selectedBranchId)?.branchName} Overview`
             : "Franchise Overview"
         }
       />

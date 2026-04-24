@@ -39,12 +39,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canAccessAdmin } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canAccessAdmin } from "@/lib/rbac";
 import { orders, externalSalesEntries, branches } from "@/data/seed";
 import { formatCurrency } from "@/lib/utils";
 
 export default function ReportsPage() {
-  const { dateRange, selectedBranchId, currentRole } = useAppStore();
+  const { dateRange, selectedBranchId, currentRole } = useAppSelector((state) => state.ui);
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [dailyPage, setDailyPage] = useState(0);
@@ -118,16 +119,16 @@ export default function ReportsPage() {
   // Branch comparison data
   const branchComparison = useMemo(() => {
     return branches.map((branch) => {
-      const branchOrders = filteredOrders.filter((o) => o.branchId === branch.id);
-      const branchExternal = filteredExternalSales.filter((e) => e.branchId === branch.id);
+      const branchOrders = filteredOrders.filter((o) => o.branchId === branch.branchId);
+      const branchExternal = filteredExternalSales.filter((e) => e.branchId === branch.branchId);
 
       const totalSales = 
         branchOrders.reduce((s, o) => s + o.total, 0) +
         branchExternal.reduce((s, e) => s + e.totalSales, 0);
 
       return {
-        name: branch.name.replace("Caffissimo", "").trim(),
-        branchId: branch.id,
+        name: branch.branchName.replace("Caffissimo", "").trim(),
+        branchId: branch.branchId,
         totalSales,
         orders: branchOrders.length,
         avgOrder: branchOrders.length > 0 ? totalSales / branchOrders.length : 0,

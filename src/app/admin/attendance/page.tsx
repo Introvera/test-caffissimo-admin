@@ -11,7 +11,7 @@ import {
   LogOut,
   Monitor,
 } from "lucide-react";
-import { parseISO, format, isWithinInterval, startOfDay } from "date-fns";
+import { parseISO, isWithinInterval, startOfDay } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,21 +31,23 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canViewAttendance, canAccessAllBranches } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canViewAttendance, canAccessAllBranches } from "@/lib/rbac";
 import { posDayRecords, branches } from "@/data/seed";
 import { formatDate } from "@/lib/utils";
-import { POSDayRecord } from "@/types";
+import { POSDayRecord, UserRole } from "@/types";
 
 const PAGE_TITLE = "POS Login / Logout Report";
 const PAGE_DESCRIPTION = "First login and last logout times per day. Inactive cashiers are auto-logged out after 10 minutes.";
 
 export default function POSLoginReportPage() {
-  const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppStore();
+  const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppSelector((state) => state.ui);
+  const authRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<POSDayRecord | null>(null);
 
   const effectiveBranchId = selectedBranchId || assignedBranchId;
-  const canView = canViewAttendance(currentRole);
+  const canView = canViewAttendance(authRole);
 
   const filteredRecords = useMemo(() => {
     return posDayRecords.filter((record) => {
@@ -72,7 +74,7 @@ export default function POSLoginReportPage() {
   }, [filteredRecords]);
 
   const getBranchName = (branchId: string) => {
-    return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
+    return branches.find((b) => b.branchId === branchId)?.branchName.replace("Caffissimo", "").trim() || "Unknown";
   };
 
   if (!canView) {

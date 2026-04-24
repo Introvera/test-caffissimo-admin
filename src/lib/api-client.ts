@@ -1,0 +1,66 @@
+import Cookies from "js-cookie";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+async function request<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = Cookies.get("auth_token");
+
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers,
+  };
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, config);
+
+  if (!response.ok) {
+    let errorMessage = "An error occurred";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      errorMessage = response.statusText;
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Handle empty responses (like 204 No Content for DELETE)
+  const text = await response.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+const apiClient = {
+  get: <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: "GET" }),
+  post: <T>(endpoint: string, data: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  put: <T>(endpoint: string, data: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  delete: <T>(endpoint: string, options?: RequestInit) =>
+    request<T>(endpoint, { ...options, method: "DELETE" }),
+  patch: <T>(endpoint: string, data: unknown, options?: RequestInit) =>
+    request<T>(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+};
+
+export default apiClient;

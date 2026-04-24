@@ -1,5 +1,14 @@
-// ============== ROLES ==============
-export type Role = "super_admin" | "branch_owner" | "supervisor" | "cashier";
+export enum UserRole {
+  SuperAdmin = "SuperAdmin",
+  SuperAdminDeveloper = "SuperAdminDeveloper",
+  BranchOwner = "BranchOwner",
+  BranchAdmin = "BranchAdmin",
+  Supervisor = "Supervisor",
+  Cashier = "Cashier",
+  Employee = "Employee",
+}
+
+export type Role = UserRole;
 
 export interface User {
   id: string;
@@ -13,22 +22,56 @@ export interface User {
   updatedAt: string;
 }
 
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  [key: string]: unknown;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 // ============== BRANCHES ==============
+export enum DayOfWeek {
+  Sunday = 0,
+  Monday = 1,
+  Tuesday = 2,
+  Wednesday = 3,
+  Thursday = 4,
+  Friday = 5,
+  Saturday = 6,
+}
+
+export interface BranchOpeningHours {
+  branchOpeningHoursId: string;
+  dayOfWeek: DayOfWeek;
+  openAt?: string;
+  closeAt?: string;
+  isClosed: boolean;
+  isActive: boolean;
+}
+
 export interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
+  branchId: string;
+  branchName: string;
+  branchDescription?: string;
+  branchAddress: string;
+  branchPhoneNumber: string;
+  branchPhoneNumberAlt?: string;
+  branchEmail: string;
+  branchEmailAlt?: string;
   isOpen: boolean;
-  openingHours: {
-    [key: string]: { open: string; close: string; closed?: boolean };
-  };
+  isActive: boolean;
+  openingHours?: BranchOpeningHours[];
   uberEatsUrl?: string;
   doorDashUrl?: string;
-  /** API key for Uber Eats integration (store securely) */
   uberEatsApiKey?: string;
-  /** API key for DoorDash integration (store securely) */
   doorDashApiKey?: string;
   createdAt: string;
   updatedAt: string;
@@ -36,20 +79,22 @@ export interface Branch {
 
 // ============== PRODUCTS ==============
 export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  sortOrder: number;
+  productCategoryId: string;
+  categoryName: string;
+  isActive: boolean;
 }
 
 export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  categoryId: string;
-  images: string[];
-  tags: string[];
-  tastingNotes?: string;
+  productId: string;
+  productCategoryId: string;
+  productCategoryName: string;
+  productName: string;
+  productPrice: number;
+  productDescription?: string;
+  posImage?: string;
+  ecomImages?: string;
+  isVisible: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

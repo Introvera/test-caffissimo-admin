@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/page-header";
-import { categories, branches } from "@/data/seed";
+import { useAppSelector } from "@/stores/store";
+import { useGetCategoriesQuery, useCreateProductMutation } from "@/stores/api/productApi";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { Category, Branch } from "@/types";
 
 const productSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -32,6 +36,9 @@ type ProductFormData = z.infer<typeof productSchema>;
 
 export default function NewProductPage() {
   const router = useRouter();
+  const { data: categories = [] } = useGetCategoriesQuery();
+  const { data: branches = [] } = useGetBranchesQuery();
+  const [createProduct] = useCreateProductMutation();
 
   const {
     register,
@@ -51,10 +58,16 @@ export default function NewProductPage() {
   });
 
   const onSubmit = async (data: ProductFormData) => {
-    // Mock API call
-    console.log("Creating product:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    router.push("/admin/products");
+    try {
+      await createProduct({
+        ...data,
+        tags: data.tags.split(",").map((t) => t.trim()),
+        images: [], // Placeholder for real image upload
+      }).unwrap();
+      router.push("/admin/products");
+    } catch (err) {
+      console.error("Failed to create product:", err);
+    }
   };
 
   return (
@@ -118,7 +131,7 @@ export default function NewProductPage() {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
+                      {categories.map((cat: Category) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
                         </SelectItem>
@@ -185,9 +198,9 @@ export default function NewProductPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {branches.map((branch) => (
-                  <div key={branch.id} className="space-y-2">
-                    <Label>{branch.name.replace("Caffissimo", "").trim()}</Label>
+                {branches.map((branch: Branch) => (
+                  <div key={branch.branchId} className="space-y-2">
+                    <Label>{branch.branchName.replace("Caffissimo", "").trim()}</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-muted-foreground">
                         $

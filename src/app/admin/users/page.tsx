@@ -65,23 +65,30 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canManageUsers, canAccessAllBranches } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canManageUsers, canAccessAllBranches } from "@/lib/rbac";
 import { users, branches } from "@/data/seed";
 import { getInitials, formatDate } from "@/lib/utils";
-import { User, Role } from "@/types";
+import { User, UserRole } from "@/types";
 
-const roleLabels: Record<Role, string> = {
-  super_admin: "Super Admin",
-  branch_owner: "Branch Owner",
-  supervisor: "Supervisor",
-  cashier: "Cashier",
+const roleLabels: Record<UserRole, string> = {
+  [UserRole.SuperAdmin]: "Super Admin",
+  [UserRole.SuperAdminDeveloper]: "Developer",
+  [UserRole.BranchOwner]: "Branch Owner",
+  [UserRole.BranchAdmin]: "Branch Admin",
+  [UserRole.Supervisor]: "Supervisor",
+  [UserRole.Cashier]: "Cashier",
+  [UserRole.Employee]: "Employee",
 };
 
-const roleBadgeVariants: Record<Role, "default" | "secondary" | "outline"> = {
-  super_admin: "default",
-  branch_owner: "secondary",
-  supervisor: "outline",
-  cashier: "outline",
+const roleBadgeVariants: Record<UserRole, "default" | "secondary" | "outline"> = {
+  [UserRole.SuperAdmin]: "default",
+  [UserRole.SuperAdminDeveloper]: "default",
+  [UserRole.BranchOwner]: "secondary",
+  [UserRole.BranchAdmin]: "secondary",
+  [UserRole.Supervisor]: "outline",
+  [UserRole.Cashier]: "outline",
+  [UserRole.Employee]: "outline",
 };
 
 const columnHelper = createColumnHelper<User>();
@@ -95,7 +102,7 @@ function SortIcon({ header }: { header: Header<User, unknown> }) {
 }
 
 export default function UsersPage() {
-  const { currentRole, selectedBranchId, assignedBranchId } = useAppStore();
+  const { currentRole, selectedBranchId, assignedBranchId } = useAppSelector((state) => state.ui);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -110,7 +117,7 @@ export default function UsersPage() {
         !globalFilter ||
         user.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
         user.email.toLowerCase().includes(globalFilter.toLowerCase());
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      const matchesRole = roleFilter === "all" || user.role === (roleFilter as UserRole);
       const matchesBranch =
         canAccessAllBranches(currentRole) ||
         !user.branchId ||
@@ -121,7 +128,7 @@ export default function UsersPage() {
 
   const getBranchName = (branchId?: string) => {
     if (!branchId) return "All Branches";
-    return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
+    return branches.find((b) => b.branchId === branchId)?.branchName.replace("Caffissimo", "").trim() || "Unknown";
   };
 
   const columns = useMemo(
@@ -279,18 +286,18 @@ export default function UsersPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Select defaultValue="cashier">
+                  <Select defaultValue={UserRole.Cashier}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {currentRole === "super_admin" && (
+                      {canAccessAllBranches(currentRole) && (
                         <>
-                          <SelectItem value="branch_owner">Branch Owner</SelectItem>
-                          <SelectItem value="supervisor">Supervisor</SelectItem>
+                          <SelectItem value={UserRole.BranchOwner}>Branch Owner</SelectItem>
+                          <SelectItem value={UserRole.Supervisor}>Supervisor</SelectItem>
                         </>
                       )}
-                      <SelectItem value="cashier">Cashier</SelectItem>
+                      <SelectItem value={UserRole.Cashier}>Cashier</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -302,8 +309,8 @@ export default function UsersPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {branches.map((branch) => (
-                        <SelectItem key={branch.id} value={branch.id}>
-                          {branch.name}
+                        <SelectItem key={branch.branchId} value={branch.branchId}>
+                          {branch.branchName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -332,10 +339,10 @@ export default function UsersPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="branch_owner">Branch Owner</SelectItem>
-              <SelectItem value="supervisor">Supervisor</SelectItem>
-              <SelectItem value="cashier">Cashier</SelectItem>
+              <SelectItem value={UserRole.SuperAdmin}>Super Admin</SelectItem>
+              <SelectItem value={UserRole.BranchOwner}>Branch Owner</SelectItem>
+              <SelectItem value={UserRole.Supervisor}>Supervisor</SelectItem>
+              <SelectItem value={UserRole.Cashier}>Cashier</SelectItem>
             </SelectContent>
           </Select>
         </div>

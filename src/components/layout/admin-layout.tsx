@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useAppStore } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const { sidebarCollapsed } = useAppStore();
+  const { sidebarCollapsed } = useAppSelector((state) => state.ui);
 
   return (
     <div className="min-h-screen bg-sidebar">

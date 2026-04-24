@@ -1,5 +1,5 @@
 "use client";
-
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,30 +11,54 @@ import {
   Settings,
   Store,
   Plus,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canManageBranch, canAccessAllBranches, canCreateBranch } from "@/stores/app-store";
-import { branches } from "@/data/seed";
+import { useAppSelector } from "@/stores/store";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { canManageBranch, canAccessAllBranches, canCreateBranch } from "@/lib/rbac";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Branch, UserRole, DayOfWeek } from "@/types";
 
 export default function BranchesPage() {
-  const { currentRole, selectedBranchId, assignedBranchId } = useAppStore();
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
+  
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const pageSize = 6;
+
+  const { data, isLoading } = useGetBranchesQuery({
+    page,
+    pageSize,
+    search: searchTerm || undefined,
+  });
+
+  const branches = data?.items || [];
+  const totalPages = data?.totalPages || 1;
 
   const filteredBranches = canAccessAllBranches(currentRole)
     ? branches
-    : branches.filter((b) => b.id === assignedBranchId);
+    : branches.filter((b: Branch) => b.branchId === assignedBranchId);
 
   const canManage = canManageBranch(currentRole);
 
-  const getTodayHours = (branch: typeof branches[0]) => {
-    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const today = days[new Date().getDay()];
-    const hours = branch.openingHours[today];
-    if (hours.closed) return "Closed";
-    return `${hours.open} - ${hours.close}`;
+  const getTodayHours = (branch: Branch) => {
+    if (!branch.openingHours || branch.openingHours.length === 0) return "Closed";
+    
+    // DayOfWeek enum: Sunday = 0, Monday = 1, ...
+    const todayNum = new Date().getDay();
+    const hours = branch.openingHours.find(h => h.dayOfWeek === todayNum);
+    
+    if (!hours || hours.isClosed || !hours.isActive) return "Closed";
+    return `${hours.openAt} - ${hours.closeAt}`;
   };
 
   return (
@@ -54,100 +78,163 @@ export default function BranchesPage() {
         }
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredBranches.map((branch, index) => (
-          <motion.div
-            key={branch.id}
-            className="h-full"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="h-full flex flex-col overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Store className="h-6 w-6 text-primary" />
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search branches..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1); // Reset to first page on search
+            }}
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+             <Skeleton key={i} className="h-[280px] w-full rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredBranches.map((branch: Branch, index: number) => (
+              <motion.div
+                key={branch.branchId}
+                className="h-full"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="h-full flex flex-col overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Store className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{branch.branchName}</CardTitle>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge
+                              variant={branch.isOpen ? "success" : "secondary"}
+                              className={branch.isOpen ? "bg-primary/10 !text-primary border-primary/20" : undefined}
+                            >
+                              {branch.isOpen ? "Open" : "Closed"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      {canManage && (
+                        <Switch checked={branch.isOpen} />
+                      )}
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{branch.name}</CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge
-                          variant={branch.isOpen ? "success" : "secondary"}
-                          className={branch.isOpen ? "bg-primary/10 !text-primary border-primary/20" : undefined}
-                        >
-                          {branch.isOpen ? "Open" : "Closed"}
-                        </Badge>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col space-y-4">
+                    <div className="space-y-2 text-sm flex-1">
+                      <div className="flex items-start gap-2 min-h-10">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                        <span className="text-muted-foreground">{branch.branchAddress}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{branch.branchPhoneNumber}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{branch.branchEmail}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Today: {getTodayHours(branch)}</span>
                       </div>
                     </div>
-                  </div>
-                  {canManage && (
-                    <Switch checked={branch.isOpen} />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col space-y-4">
-                <div className="space-y-2 text-sm flex-1">
-                  <div className="flex items-start gap-2 min-h-10">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{branch.address}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{branch.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{branch.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Today: {getTodayHours(branch)}</span>
-                  </div>
-                </div>
 
-                {/* Platform Links */}
-                <div className="flex gap-2">
-                  {branch.uberEatsUrl && (
-                    <a
-                      href={branch.uberEatsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1"
-                    >
-                      <Button variant="outline" size="sm" className="w-full">
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Uber Eats
-                      </Button>
-                    </a>
-                  )}
-                  {branch.doorDashUrl && (
-                    <a
-                      href={branch.doorDashUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1"
-                    >
-                      <Button variant="outline" size="sm" className="w-full">
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        DoorDash
-                      </Button>
-                    </a>
-                  )}
-                </div>
+                    {/* Platform Links */}
+                    <div className="flex gap-2">
+                      {branch.uberEatsUrl && (
+                        <a
+                          href={branch.uberEatsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1"
+                        >
+                          <Button variant="outline" size="sm" className="w-full">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Uber Eats
+                          </Button>
+                        </a>
+                      )}
+                      {branch.doorDashUrl && (
+                        <a
+                          href={branch.doorDashUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1"
+                        >
+                          <Button variant="outline" size="sm" className="w-full">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            DoorDash
+                          </Button>
+                        </a>
+                      )}
+                    </div>
 
-                <Link href={`/admin/branches/${branch.id}`} className="mt-auto">
-                  <Button variant="outline" className="w-full">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage Branch
+                    <Link href={`/admin/branches/${branch.branchId}`} className="mt-auto">
+                      <Button variant="outline" className="w-full">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Manage Branch
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Button
+                    key={p}
+                    variant={p === page ? "default" : "outline"}
+                    size="sm"
+                    className="w-9"
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
                   </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -2,40 +2,61 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, Mail, Save, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Save, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canManageBranch } from "@/stores/app-store";
-import { branches } from "@/data/seed";
+import { useAppSelector } from "@/stores/store";
+import { useGetBranchByIdQuery } from "@/stores/api/branchApi";
+import { canManageBranch } from "@/lib/rbac";
+import { UserRole } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface BranchDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
 const DAYS = [
-  { key: "monday", label: "Monday" },
-  { key: "tuesday", label: "Tuesday" },
-  { key: "wednesday", label: "Wednesday" },
-  { key: "thursday", label: "Thursday" },
-  { key: "friday", label: "Friday" },
-  { key: "saturday", label: "Saturday" },
-  { key: "sunday", label: "Sunday" },
+  { index: 1, label: "Monday" },
+  { index: 2, label: "Tuesday" },
+  { index: 3, label: "Wednesday" },
+  { index: 4, label: "Thursday" },
+  { index: 5, label: "Friday" },
+  { index: 6, label: "Saturday" },
+  { index: 0, label: "Sunday" },
 ];
 
 export default function BranchDetailPage({ params }: BranchDetailPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { currentRole } = useAppStore();
-
-  const branch = branches.find((b) => b.id === resolvedParams.id);
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  
+  const { data: branch, isLoading } = useGetBranchByIdQuery(resolvedParams.id);
   const canEdit = canManageBranch(currentRole);
+  
   const [showUberApiKey, setShowUberApiKey] = useState(false);
   const [showDoorApiKey, setShowDoorApiKey] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-10 w-64" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-[300px] w-full rounded-xl" />
+            <Skeleton className="h-[400px] w-full rounded-xl" />
+          </div>
+          <Skeleton className="h-[200px] w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   if (!branch) {
     return (
@@ -44,7 +65,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              The branch you're looking for doesn't exist.
+              The branch you&apos;re looking for doesn&apos;t exist.
             </p>
             <Button onClick={() => router.push("/admin/branches")} className="mt-4">
               Back to Branches
@@ -62,7 +83,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <PageHeader
-          title={branch.name}
+          title={branch.branchName}
           description="Manage branch settings and information"
         />
       </div>
@@ -77,20 +98,20 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Branch Name</Label>
-                <Input defaultValue={branch.name} disabled={!canEdit} />
+                <Input defaultValue={branch.branchName} disabled={!canEdit} />
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
-                <Input defaultValue={branch.address} disabled={!canEdit} />
+                <Input defaultValue={branch.branchAddress} disabled={!canEdit} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input defaultValue={branch.phone} disabled={!canEdit} />
+                  <Input defaultValue={branch.branchPhoneNumber} disabled={!canEdit} />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input defaultValue={branch.email} disabled={!canEdit} />
+                  <Input defaultValue={branch.branchEmail} disabled={!canEdit} />
                 </div>
               </div>
             </CardContent>
@@ -103,28 +124,29 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {DAYS.map(({ key, label }) => {
-                  const hours = branch.openingHours[key];
+                {DAYS.map(({ index, label }) => {
+                  const hours = branch.openingHours?.find(h => h.dayOfWeek === index);
+                  const isOpen = hours && !hours.isClosed && hours.isActive;
                   return (
-                    <div key={key} className="flex items-center gap-4">
+                    <div key={index} className="flex items-center gap-4">
                       <span className="w-24 text-sm font-medium">{label}</span>
                       <div className="flex items-center gap-2 flex-1">
                         <Input
                           type="time"
-                          defaultValue={hours.open}
-                          disabled={!canEdit || hours.closed}
+                          defaultValue={hours?.openAt || ""}
+                          disabled={!canEdit || !isOpen}
                           className="w-28"
                         />
                         <span className="text-muted-foreground">to</span>
                         <Input
                           type="time"
-                          defaultValue={hours.close}
-                          disabled={!canEdit || hours.closed}
+                          defaultValue={hours?.closeAt || ""}
+                          disabled={!canEdit || !isOpen}
                           className="w-28"
                         />
                         <div className="flex items-center gap-2 ml-4">
                           <Switch
-                            checked={!hours.closed}
+                            checked={isOpen ?? false}
                             disabled={!canEdit}
                           />
                           <span className="text-sm text-muted-foreground">Open</span>

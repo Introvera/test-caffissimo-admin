@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SourceBadge } from "@/components/shared/source-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { useAppStore, canCancelOrders } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canCancelOrders } from "@/lib/rbac";
 import { orders, branches } from "@/data/seed";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
@@ -46,10 +47,10 @@ interface OrderDetailPageProps {
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { currentRole } = useAppStore();
+  const { currentRole } = useAppSelector((state) => state.ui);
 
   const order = orders.find((o) => o.id === resolvedParams.id);
-  const branch = branches.find((b) => b.id === order?.branchId);
+  const branch = branches.find((b) => b.branchId === order?.branchId);
 
   if (!order) {
     return (
@@ -301,8 +302,8 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                     <Store className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{branch?.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{branch?.address}</p>
+                    <p className="text-sm font-medium">{branch?.branchName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{branch?.branchAddress}</p>
                   </div>
                 </div>
               </div>

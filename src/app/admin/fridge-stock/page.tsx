@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canSubmitFridgeReport, canAccessAllBranches } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canSubmitFridgeReport, canAccessAllBranches } from "@/lib/rbac";
 import { fridgeStockReports, branches } from "@/data/seed";
 import { formatDate } from "@/lib/utils";
 
@@ -39,7 +40,7 @@ const FRIDGE_UNITS = [
 ];
 
 export default function FridgeStockPage() {
-  const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppStore();
+  const { currentRole, selectedBranchId, assignedBranchId, dateRange } = useAppSelector((state) => state.ui);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [temperatureValues, setTemperatureValues] = useState<Record<string, number>>({});
 
@@ -59,7 +60,7 @@ export default function FridgeStockPage() {
   }, [dateRange, effectiveBranchId]);
 
   const getBranchName = (branchId: string) => {
-    return branches.find((b) => b.id === branchId)?.name.replace("Caffissimo", "").trim() || "Unknown";
+    return branches.find((b) => b.branchId === branchId)?.branchName.replace("Caffissimo", "").trim() || "Unknown";
   };
 
   const getTemperatureColor = (temp: number) => {
@@ -104,14 +105,14 @@ export default function FridgeStockPage() {
                     {canAccessAllBranches(currentRole) && (
                       <div className="space-y-2">
                         <Label>Branch</Label>
-                        <Select defaultValue={effectiveBranchId || branches[0].id}>
+                        <Select defaultValue={effectiveBranchId || branches[0].branchId}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {branches.map((branch) => (
-                              <SelectItem key={branch.id} value={branch.id}>
-                                {branch.name.replace("Caffissimo", "").trim()}
+                              <SelectItem key={branch.branchId} value={branch.branchId}>
+                                {branch.branchName.replace("Caffissimo", "").trim()}
                               </SelectItem>
                             ))}
                           </SelectContent>

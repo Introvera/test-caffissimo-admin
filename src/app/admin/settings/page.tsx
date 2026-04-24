@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/shared/page-header";
-import { useAppStore, canManageSettings } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canManageSettings } from "@/lib/rbac";
 
 export default function SettingsPage() {
-  const { currentRole } = useAppStore();
+  const { currentRole } = useAppSelector((state) => state.ui);
   const [taxRate, setTaxRate] = useState("8.75");
   const [serviceFeeRate, setServiceFeeRate] = useState("0");
 

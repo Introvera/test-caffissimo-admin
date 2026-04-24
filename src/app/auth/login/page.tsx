@@ -8,56 +8,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAppStore } from "@/stores/app-store";
-import { Role } from "@/types";
-
-const DEMO_ACCOUNTS = [
-  { email: "alex@caffissimo.com", password: "admin", role: "super_admin" as Role, name: "Super Admin" },
-  { email: "maria@caffissimo.com", password: "admin", role: "branch_owner" as Role, name: "Branch Owner" },
-  { email: "michael@caffissimo.com", password: "admin", role: "supervisor" as Role, name: "Supervisor" },
-];
+import { useAppDispatch, useAppSelector } from "@/stores/store";
+import { loginWithFirebase } from "@/stores/slices/authSlice";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setRole, setAssignedBranchId } = useAppStore();
+  const dispatch = useAppDispatch();
+  const { isLoading, error: authError } = useAppSelector((state) => state.auth);
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [localError, setLocalError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    setLocalError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const account = DEMO_ACCOUNTS.find(
-      (a) => a.email === email && a.password === password
-    );
-
-    if (account) {
-      setRole(account.role);
-      if (account.role !== "super_admin") {
-        setAssignedBranchId("branch-1");
+    try {
+      const resultAction = await dispatch(loginWithFirebase({ email, password }));
+      if (loginWithFirebase.fulfilled.match(resultAction)) {
+        router.push("/admin/dashboard");
       }
-      router.push("/admin/dashboard");
-    } else {
-      setError("Invalid email or password");
+    } catch (err) {
+      // error handled in slice
     }
-
-    setIsLoading(false);
   };
 
-  const handleDemoLogin = (role: Role) => {
-    setRole(role);
-    if (role !== "super_admin") {
-      setAssignedBranchId("branch-1");
-    }
-    router.push("/admin/dashboard");
-  };
+  const error = localError || authError;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-card p-4 relative">
@@ -124,37 +102,6 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with demo
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {DEMO_ACCOUNTS.map((account) => (
-              <Button
-                key={account.role}
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleDemoLogin(account.role)}
-              >
-                <span className="flex-1 text-left">{account.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {account.email}
-                </span>
-              </Button>
-            ))}
-          </div>
-
-          <p className="text-xs text-center text-muted-foreground">
-            Demo password for all accounts: <code className="bg-muted px-1 rounded">admin</code>
-          </p>
         </CardContent>
       </Card>
     </div>

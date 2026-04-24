@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Menu, Bell, Search } from "lucide-react";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -24,54 +24,51 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar, DateRangeCalendar } from "@/components/ui/calendar";
-import { useAppStore, canAccessAllBranches } from "@/stores/app-store";
+import { DateRangeCalendar } from "@/components/ui/calendar";
+import { useAppDispatch, useAppSelector } from "@/stores/store";
+import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen } from "@/stores/slices/uiSlice";
+import { logout } from "@/stores/slices/authSlice";
+import { canAccessAllBranches } from "@/lib/rbac";
 import { branches } from "@/data/seed";
 import { format } from "date-fns";
-import { Role } from "@/types";
+import { UserRole } from "@/types";
 import { cn } from "@/lib/utils";
 
-const roleLabels: Record<Role, string> = {
-  super_admin: "Super Admin",
-  branch_owner: "Branch Owner",
-  supervisor: "Supervisor",
-  cashier: "Cashier",
+const roleLabels: Record<UserRole, string> = {
+  [UserRole.SuperAdmin]: "Super Admin",
+  [UserRole.SuperAdminDeveloper]: "Developer",
+  [UserRole.BranchOwner]: "Branch Owner",
+  [UserRole.BranchAdmin]: "Branch Admin",
+  [UserRole.Supervisor]: "Supervisor",
+  [UserRole.Cashier]: "Cashier",
+  [UserRole.Employee]: "Employee",
 };
 
-const roleBadgeVariants: Record<Role, "default" | "secondary" | "outline"> = {
-  super_admin: "default",
-  branch_owner: "secondary",
-  supervisor: "outline",
-  cashier: "outline",
+const roleBadgeVariants: Record<UserRole, "default" | "secondary" | "outline"> = {
+  [UserRole.SuperAdmin]: "default",
+  [UserRole.SuperAdminDeveloper]: "default",
+  [UserRole.BranchOwner]: "secondary",
+  [UserRole.BranchAdmin]: "secondary",
+  [UserRole.Supervisor]: "outline",
+  [UserRole.Cashier]: "outline",
+  [UserRole.Employee]: "outline",
 };
 
 export function Header() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+  const dispatch = useAppDispatch();
   const {
-    currentRole,
-    setRole,
     selectedBranchId,
-    setSelectedBranchId,
-    assignedBranchId,
-    setAssignedBranchId,
     dateRange,
     dateRangePreset,
-    setDateRange,
-    setDateRangePreset,
-    setMobileMenuOpen,
-    devMode,
-  } = useAppStore();
-
-  // Sync header search input with URL when on search page
-  useEffect(() => {
-    if (pathname === "/admin/search") {
-      const q = searchParams.get("q") ?? "";
-      setSearchQuery(q);
-    }
-  }, [pathname, searchParams]);
+  } = useAppSelector((state) => state.ui);
+  
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
+  const userName = useAppSelector((state) => state.auth.user?.name) || "User";
+  const userEmail = useAppSelector((state) => state.auth.user?.email) || "user@caffissimo.com";
 
   const handleAdminSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,20 +78,10 @@ export function Header() {
     }
   };
 
-  const handleRoleChange = (role: Role) => {
-    setRole(role);
-    // When switching to non-super_admin, assign a branch
-    if (role !== "super_admin") {
-      setAssignedBranchId("branch-1");
-      setSelectedBranchId("branch-1");
-    } else {
-      setAssignedBranchId(null);
-      setSelectedBranchId(null);
-    }
-  };
+
 
   const handleBranchChange = (branchId: string) => {
-    setSelectedBranchId(branchId === "all" ? null : branchId);
+    dispatch(setSelectedBranchId(branchId === "all" ? null : branchId));
   };
 
   return (
@@ -104,7 +91,7 @@ export function Header() {
         variant="ghost"
         size="icon"
         className="lg:hidden"
-        onClick={() => setMobileMenuOpen(true)}
+        onClick={() => dispatch(setMobileMenuOpen(true))}
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -135,7 +122,7 @@ export function Header() {
               <button
                 key={preset}
                 type="button"
-                onClick={() => setDateRangePreset(preset)}
+                onClick={() => dispatch(setDateRangePreset(preset))}
                 className={cn(
                   "h-9 px-3 text-xs font-medium transition-colors flex items-center justify-center",
                   dateRangePreset === preset
@@ -159,7 +146,7 @@ export function Header() {
                 to={dateRange.to}
                 onSelect={(range) => {
                   if (range.from && range.to) {
-                    setDateRange({ from: range.from, to: range.to });
+                    dispatch(setDateRange({ from: range.from, to: range.to }));
                   }
                 }}
               />
@@ -179,27 +166,15 @@ export function Header() {
             <SelectContent>
               <SelectItem value="all">All Branches</SelectItem>
               {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name.replace("Caffissimo", "").trim()}
+                <SelectItem key={branch.branchId} value={branch.branchId}>
+                  {branch.branchName.replace("Caffissimo", "").trim()}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
 
-        {/* Dev Mode Role Switcher */}
-        {devMode && (
-          <Select value={currentRole} onValueChange={(v) => handleRoleChange(v as Role)}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="branch_owner">Branch Owner</SelectItem>
-              <SelectItem value="supervisor">Supervisor</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
+
 
         {/* Theme Toggle */}
         <ThemeToggleSimple />
@@ -218,7 +193,7 @@ export function Header() {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {currentRole === "super_admin" ? "SA" : currentRole === "branch_owner" ? "BO" : "SV"}
+                  {currentRole === UserRole.SuperAdmin ? "SA" : currentRole === UserRole.BranchOwner ? "BO" : "SV"}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -227,10 +202,10 @@ export function Header() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  {currentRole === "super_admin" ? "Alex Johnson" : currentRole === "branch_owner" ? "Maria Garcia" : "Michael Brown"}
+                  {userName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {currentRole === "super_admin" ? "alex@caffissimo.com" : currentRole === "branch_owner" ? "maria@caffissimo.com" : "michael@caffissimo.com"}
+                  {userEmail}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -241,7 +216,7 @@ export function Header() {
               </Badge>
               {assignedBranchId && (
                 <span className="text-xs text-muted-foreground">
-                  {branches.find((b) => b.id === assignedBranchId)?.name.replace("Caffissimo", "").trim()}
+                  {branches.find((b) => b.branchId === assignedBranchId)?.branchName.replace("Caffissimo", "").trim()}
                 </span>
               )}
             </DropdownMenuItem>
@@ -249,7 +224,10 @@ export function Header() {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => {
+              dispatch(logout());
+              router.push("/admin/login");
+            }}>Log out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

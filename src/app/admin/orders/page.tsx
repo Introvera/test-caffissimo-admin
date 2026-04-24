@@ -54,7 +54,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SourceBadge } from "@/components/shared/source-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
 import { orders, branches } from "@/data/seed";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { Order, OrderSource, OrderStatus } from "@/types";
@@ -71,7 +71,7 @@ function SortIcon({ header }: { header: Header<Order, unknown> }) {
 }
 
 export default function OrdersPage() {
-  const { dateRange, selectedBranchId } = useAppStore();
+  const { dateRange, selectedBranchId } = useAppSelector((state) => state.ui);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -114,10 +114,10 @@ export default function OrdersPage() {
         header: "Branch",
         enableSorting: false,
         cell: (info) => {
-          const branch = branches.find((b) => b.id === info.getValue());
+          const branch = branches.find((b) => b.branchId === info.getValue());
           return (
             <span className="text-sm text-foreground">
-              {branch?.name.replace("Caffissimo", "").trim()}
+              {branch?.branchName.replace("Caffissimo", "").trim()}
             </span>
           );
         },

@@ -20,13 +20,11 @@ import {
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   flexRender,
   createColumnHelper,
   SortingState,
   Header,
+  PaginationState,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,21 +53,16 @@ import {
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canManageProducts } from "@/stores/app-store";
-import { products, categories, branchProducts } from "@/data/seed";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAppSelector } from "@/stores/store";
+import { useGetProductsQuery, useGetCategoriesQuery } from "@/stores/api/productApi";
+import { canManageProducts } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/utils";
-import { Product } from "@/types";
+import { Product, UserRole } from "@/types";
 
-interface ProductRow extends Product {
-  categoryName: string;
-  price: number | null;
-  isAvailable: boolean;
-  isVisible: boolean;
-}
+const columnHelper = createColumnHelper<Product>();
 
-const columnHelper = createColumnHelper<ProductRow>();
-
-function SortIcon({ header }: { header: Header<ProductRow, unknown> }) {
+function SortIcon({ header }: { header: Header<Product, unknown> }) {
   if (!header.column.getCanSort()) return null;
 
   const sorted = header.column.getIsSorted();
@@ -79,85 +72,86 @@ function SortIcon({ header }: { header: Header<ProductRow, unknown> }) {
 }
 
 export default function ProductsPage() {
-  const { currentRole, selectedBranchId, assignedBranchId } = useAppStore();
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || "Cashier";
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  const effectiveBranchId = selectedBranchId || assignedBranchId || "branch-1";
+  const { data: categoriesData } = useGetCategoriesQuery();
+  const categories = categoriesData?.items || [];
 
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter((product) => {
-        return categoryFilter === "all" || product.categoryId === categoryFilter;
-      })
-      .map((product): ProductRow => {
-        const branchData = branchProducts.find(
-          (bp) => bp.productId === product.id && bp.branchId === effectiveBranchId
-        );
-        return {
-          ...product,
-          categoryName:
-            categories.find((c) => c.id === product.categoryId)?.name || "Unknown",
-          price: branchData?.price ?? null,
-          isAvailable: branchData?.isAvailable ?? false,
-          isVisible: branchData?.isVisible ?? false,
-        };
-      });
-  }, [categoryFilter, effectiveBranchId]);
+  const { data: productsData, isLoading: productsLoading } = useGetProductsQuery({
+    page: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    search: globalFilter || undefined,
+    productCategoryId: categoryFilter === "all" ? undefined : categoryFilter,
+  });
+
+  const products = productsData?.items || [];
+  const totalCount = productsData?.totalCount || 0;
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor("name", {
+      columnHelper.accessor("productName", {
         header: "Product",
         cell: (info) => (
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-              <Package className="h-5 w-5 text-muted-foreground" />
+            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
+              {info.row.original.posImage ? (
+                <img 
+                  src={info.row.original.posImage} 
+                  alt={info.getValue()} 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <Package className="h-5 w-5 text-muted-foreground" />
+              )}
             </div>
             <div>
               <Link
-                href={`/admin/products/${info.row.original.id}`}
+                href={`/admin/products/${info.row.original.productId}`}
                 className="font-medium text-foreground hover:underline"
               >
                 {info.getValue()}
               </Link>
               <p className="text-xs text-muted-foreground line-clamp-1">
-                {info.row.original.description}
+                {info.row.original.productDescription}
               </p>
             </div>
           </div>
         ),
       }),
-      columnHelper.accessor("categoryName", {
+      columnHelper.accessor("productCategoryName", {
         header: "Category",
-        enableSorting: false,
         cell: (info) => <Badge variant="secondary">{info.getValue()}</Badge>,
       }),
-      columnHelper.accessor("price", {
+      columnHelper.accessor("productPrice", {
         header: "Price",
         cell: (info) => (
           <span className="font-medium text-foreground">
-            {info.getValue() !== null ? formatCurrency(info.getValue()!) : "N/A"}
+            {formatCurrency(info.getValue())}
           </span>
         ),
       }),
-      columnHelper.accessor("isAvailable", {
-        header: "Availability",
-        enableSorting: false,
+      columnHelper.accessor("isActive", {
+        header: "Status",
         cell: (info) => (
-          <Badge variant={info.getValue() ? "success" : "destructive"}>
-            {info.getValue() ? "In Stock" : "Out of Stock"}
+          <Badge variant={info.getValue() ? "success" : "secondary"}>
+            {info.getValue() ? "Active" : "Archived"}
           </Badge>
         ),
       }),
       columnHelper.accessor("isVisible", {
         header: "Visible",
-        enableSorting: false,
         cell: (info) => (
           <Switch
             checked={info.getValue()}
-            disabled={!canManageProducts(currentRole)}
+            disabled={!canManageProducts(currentRole as UserRole)}
           />
         ),
       }),
@@ -174,7 +168,7 @@ export default function ProductsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href={`/admin/products/${row.id}`}>
+                  <Link href={`/admin/products/${row.productId}`}>
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Product
                   </Link>
@@ -206,23 +200,15 @@ export default function ProductsPage() {
   );
 
   const table = useReactTable({
-    data: filteredProducts,
+    data: products,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    initialState: {
-      pagination: { pageSize: 10 },
-    },
+    manualPagination: true,
+    pageCount: productsData?.totalPages || 1,
   });
-
-  const pageIndex = table.getState().pagination.pageIndex;
-  const pageSize = table.getState().pagination.pageSize;
-  const totalRows = table.getFilteredRowModel().rows.length;
 
   return (
     <div className="space-y-6">
@@ -230,7 +216,7 @@ export default function ProductsPage() {
         title="Products"
         description="Manage your product catalog and pricing"
         actions={
-          canManageProducts(currentRole) && (
+          canManageProducts(currentRole as UserRole) && (
             <Link href="/admin/products/new">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -244,15 +230,18 @@ export default function ProductsPage() {
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={categoryFilter} onValueChange={(val) => {
+            setCategoryFilter(val);
+            setPagination(prev => ({ ...prev, pageIndex: 0 }));
+          }}>
             <SelectTrigger className="w-auto h-9 gap-1.5 rounded-lg border-border/80 bg-background px-3.5 text-sm font-medium shadow-none">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
+                <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>
+                  {cat.categoryName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -263,25 +252,34 @@ export default function ProductsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
-            value={globalFilter ?? ""}
-            onChange={(e) => setGlobalFilter(e.target.value)}
+            value={globalFilter}
+            onChange={(e) => {
+              setGlobalFilter(e.target.value);
+              setPagination(prev => ({ ...prev, pageIndex: 0 }));
+            }}
             className="pl-9 w-[220px] h-9 bg-background rounded-lg"
           />
         </div>
       </div>
 
       <div>
-        <div className="p-0">
-          {filteredProducts.length === 0 ? (
-            <div className="p-6">
-              <EmptyState
-                icon={Package}
-                title="No products found"
-                description="Try adjusting your search or filters"
-              />
-            </div>
-          ) : (
-            <>
+        {productsLoading ? (
+          <div className="space-y-2 p-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="p-12">
+            <EmptyState
+              icon={Package}
+              title="No products found"
+              description="Try adjusting your search or filters"
+            />
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -325,70 +323,73 @@ export default function ProductsPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between border-t border-border/60 px-6 py-4">
-                <p className="text-sm text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-medium text-foreground">
-                    {pageIndex * pageSize + 1}
-                  </span>
-                  {" "}to{" "}
-                  <span className="font-medium text-foreground">
-                    {Math.min((pageIndex + 1) * pageSize, totalRows)}
-                  </span>
-                  {" "}of{" "}
-                  <span className="font-medium text-foreground">{totalRows}</span>
-                  {" "}products
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
-                    let pageNum: number;
-                    const totalPages = table.getPageCount();
-                    if (totalPages <= 5) {
-                      pageNum = i;
-                    } else if (pageIndex < 3) {
-                      pageNum = i;
-                    } else if (pageIndex > totalPages - 4) {
-                      pageNum = totalPages - 5 + i;
-                    } else {
-                      pageNum = pageIndex - 2 + i;
-                    }
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={pageIndex === pageNum ? "default" : "outline"}
-                        size="sm"
-                        className="h-8 w-8 p-0 text-xs"
-                        onClick={() => table.setPageIndex(pageNum)}
-                      >
-                        {pageNum + 1}
-                      </Button>
-                    );
-                  })}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+            {/* Pagination */}
+            <div className="flex items-center justify-between border-t border-border/60 px-6 py-4 bg-muted/5">
+              <p className="text-sm text-muted-foreground">
+                Showing{" "}
+                <span className="font-medium text-foreground">
+                  {pagination.pageIndex * pagination.pageSize + 1}
+                </span>
+                {" "}to{" "}
+                <span className="font-medium text-foreground">
+                  {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalCount)}
+                </span>
+                {" "}of{" "}
+                <span className="font-medium text-foreground">{totalCount}</span>
+                {" "}products
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(table.getPageCount(), 5) }, (_, i) => {
+                  let pageNum: number;
+                  const totalPages = table.getPageCount();
+                  const currentPage = pagination.pageIndex;
+
+                  if (totalPages <= 5) {
+                    pageNum = i;
+                  } else if (currentPage < 3) {
+                    pageNum = i;
+                  } else if (currentPage > totalPages - 4) {
+                    pageNum = totalPages - 5 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 w-8 p-0 text-xs"
+                      onClick={() => table.setPageIndex(pageNum)}
+                    >
+                      {pageNum + 1}
+                    </Button>
+                  );
+                })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

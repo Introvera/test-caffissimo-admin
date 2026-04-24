@@ -37,8 +37,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAppStore, canAccessAdmin } from "@/stores/app-store";
-import { Role } from "@/types";
+import { useAppDispatch, useAppSelector } from "@/stores/store";
+import { setSidebarCollapsed, setMobileMenuOpen } from "@/stores/slices/uiSlice";
+import { canAccessAdmin } from "@/lib/rbac";
+import { UserRole } from "@/types";
 
 interface NavChild {
   title: string;
@@ -49,7 +51,7 @@ interface NavChild {
 interface NavGroup {
   title: string;
   icon: React.ElementType;
-  permission?: (role: Role) => boolean;
+  permission?: (role: UserRole | undefined) => boolean;
   children: NavChild[];
 }
 
@@ -57,7 +59,7 @@ interface NavSingle {
   title: string;
   href: string;
   icon: React.ElementType;
-  permission?: (role: Role) => boolean;
+  permission?: (role: UserRole | undefined) => boolean;
 }
 
 type NavEntry =
@@ -126,13 +128,9 @@ const navEntries: NavEntry[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const {
-    currentRole,
-    sidebarCollapsed,
-    setSidebarCollapsed,
-    mobileMenuOpen,
-    setMobileMenuOpen,
-  } = useAppStore();
+  const dispatch = useAppDispatch();
+  const { sidebarCollapsed, mobileMenuOpen } = useAppSelector((state) => state.ui);
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
 
   // Track which groups are open — auto-open the group containing the active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -178,7 +176,7 @@ export function Sidebar() {
     const linkContent = (
       <Link
         href={item.href}
-        onClick={() => setMobileMenuOpen(false)}
+        onClick={() => dispatch(setMobileMenuOpen(false))}
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
           active
@@ -251,7 +249,7 @@ export function Sidebar() {
                 <Link
                   key={child.href}
                   href={child.href}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => dispatch(setMobileMenuOpen(false))}
                   className={cn(
                     "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent",
                     childActive && "font-semibold text-primary"
@@ -373,7 +371,7 @@ export function Sidebar() {
           variant="ghost"
           size={collapsed ? "icon" : "sm"}
           className="w-full justify-center"
-          onClick={() => setSidebarCollapsed(!collapsed)}
+          onClick={() => dispatch(setSidebarCollapsed(!sidebarCollapsed))}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -410,7 +408,7 @@ export function Sidebar() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => dispatch(setMobileMenuOpen(false))}
             />
             <motion.aside
               initial={{ x: -256 }}
@@ -423,7 +421,7 @@ export function Sidebar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => dispatch(setMobileMenuOpen(false))}
                 >
                   <X className="h-5 w-5" />
                 </Button>

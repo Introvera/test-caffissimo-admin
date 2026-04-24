@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/shared/page-header";
-import { canCreateBranch } from "@/stores/app-store";
-import { useAppStore } from "@/stores/app-store";
+import { canCreateBranch } from "@/lib/rbac";
+import { useAppSelector } from "@/stores/store";
+import { useCreateBranchMutation } from "@/stores/api/branchApi";
+import { UserRole } from "@/types";
 
 const DAYS = [
   { key: "monday", label: "Monday" },
@@ -35,7 +37,8 @@ const defaultOpeningHours: Record<string, { open: string; close: string; closed?
 
 export default function NewBranchPage() {
   const router = useRouter();
-  const { currentRole } = useAppStore();
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const [createBranch] = useCreateBranchMutation();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -65,10 +68,26 @@ export default function NewBranchPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, persist to API here. For now redirect back.
-    router.push("/admin/branches");
+    try {
+      await createBranch({
+        name,
+        address,
+        phone,
+        email,
+        isOpen,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        openingHours: openingHours as any,
+        uberEatsUrl: "",
+        doorDashUrl: "",
+        uberEatsApiKey: uberEatsApiKey || undefined,
+        doorDashApiKey: doorDashApiKey || undefined,
+      }).unwrap();
+      router.push("/admin/branches");
+    } catch (err) {
+      console.error("Failed to create branch:", err);
+    }
   };
 
   if (!canCreate) {

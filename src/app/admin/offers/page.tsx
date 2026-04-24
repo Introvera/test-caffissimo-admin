@@ -38,7 +38,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAppStore, canManageOffers } from "@/stores/app-store";
+import { useAppSelector } from "@/stores/store";
+import { canManageOffers } from "@/lib/rbac";
 import { offers, branches, categories, products } from "@/data/seed";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Offer } from "@/types";
@@ -46,7 +47,7 @@ import { Offer } from "@/types";
 type FormDiscountType = "percent" | "fixed" | "item_wise";
 
 export default function OffersPage() {
-  const { currentRole, selectedBranchId } = useAppStore();
+  const { currentRole, selectedBranchId } = useAppSelector((state) => state.ui);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [formDiscountType, setFormDiscountType] = useState<FormDiscountType>("percent");
   const [formBuyQuantity, setFormBuyQuantity] = useState(1);
@@ -73,13 +74,13 @@ export default function OffersPage() {
     const parts: string[] = [];
     if (offer.categoryIds?.length) {
       const catNames = offer.categoryIds
-        .map((id) => categories.find((c) => c.id === id)?.name)
+        .map((id) => categories.find((c) => c.productCategoryId === id)?.categoryName)
         .filter(Boolean);
       parts.push(`Categories: ${catNames.join(", ")}`);
     }
     if (offer.productIds?.length) {
       const prodNames = offer.productIds
-        .map((id) => products.find((p) => p.id === id)?.name)
+        .map((id) => products.find((p) => p.productId === id)?.productName)
         .filter(Boolean)
         .slice(0, 3);
       parts.push(`Products: ${prodNames.join(", ")}${offer.productIds.length > 3 ? "..." : ""}`);
@@ -91,7 +92,7 @@ export default function OffersPage() {
   const getBranchScope = (offer: Offer) => {
     if (!offer.branchIds?.length) return "All branches";
     return offer.branchIds
-      .map((id) => branches.find((b) => b.id === id)?.name.replace("Caffissimo", "").trim())
+      .map((id) => branches.find((b) => b.branchId === id)?.branchName.replace("Caffissimo", "").trim())
       .filter(Boolean)
       .join(", ");
   };
@@ -191,8 +192,8 @@ export default function OffersPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
+                          <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>
+                            {cat.categoryName}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -207,8 +208,8 @@ export default function OffersPage() {
                       <SelectContent>
                         <SelectItem value="all">All Branches</SelectItem>
                         {branches.map((branch) => (
-                          <SelectItem key={branch.id} value={branch.id}>
-                            {branch.name}
+                          <SelectItem key={branch.branchId} value={branch.branchId}>
+                            {branch.branchName}
                           </SelectItem>
                         ))}
                       </SelectContent>
