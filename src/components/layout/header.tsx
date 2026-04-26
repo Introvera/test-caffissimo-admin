@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu, Bell, Search, LogOut } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar, DateRangeCalendar } from "@/components/ui/calendar";
+import { DateRangeCalendar } from "@/components/ui/calendar";
 import { useAppStore, canAccessAllBranches } from "@/stores/app-store";
 import { branches } from "@/data/seed";
 import { format } from "date-fns";
@@ -45,10 +46,18 @@ const roleBadgeVariants: Record<Role, "default" | "secondary" | "outline"> = {
   cashier: "outline",
 };
 
+function formatBackendRole(role: string) {
+  return role
+    .replace(/[_-]/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { appUser, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const {
     currentRole,
@@ -69,7 +78,8 @@ export function Header() {
   useEffect(() => {
     if (pathname === "/admin/search") {
       const q = searchParams.get("q") ?? "";
-      setSearchQuery(q);
+      const timeout = window.setTimeout(() => setSearchQuery(q), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [pathname, searchParams]);
 
@@ -96,6 +106,34 @@ export function Header() {
   const handleBranchChange = (branchId: string) => {
     setSelectedBranchId(branchId === "all" ? null : branchId);
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace("/admin/login");
+  };
+
+  const profileName = appUser
+    ? `${appUser.firstName} ${appUser.lastName}`.trim()
+    : "";
+  const displayName = profileName || "Admin User";
+  const displayEmail = appUser?.email || "Signed in";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AD";
+  const devRoleSwitcherEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_DEV_ROLE_SWITCHER === "true";
+  const roleDisplayLabel = appUser?.backendRole
+    ? formatBackendRole(appUser.backendRole)
+    : roleLabels[currentRole];
+  const assignedBranchName = assignedBranchId
+    ? branches
+        .find((branch) => branch.id === assignedBranchId)
+        ?.name.replace("Caffissimo", "")
+        .trim()
+    : null;
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 lg:px-6 lg:rounded-t-2xl">
@@ -188,7 +226,7 @@ export function Header() {
         )}
 
         {/* Dev Mode Role Switcher */}
-        {devMode && (
+        {devMode && devRoleSwitcherEnabled && (
           <Select value={currentRole} onValueChange={(v) => handleRoleChange(v as Role)}>
             <SelectTrigger className="w-[140px] h-9">
               <SelectValue />
@@ -218,7 +256,7 @@ export function Header() {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {currentRole === "super_admin" ? "SA" : currentRole === "branch_owner" ? "BO" : "SV"}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -227,21 +265,21 @@ export function Header() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  {currentRole === "super_admin" ? "Alex Johnson" : currentRole === "branch_owner" ? "Maria Garcia" : "Michael Brown"}
+                  {displayName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {currentRole === "super_admin" ? "alex@caffissimo.com" : currentRole === "branch_owner" ? "maria@caffissimo.com" : "michael@caffissimo.com"}
+                  {displayEmail}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <Badge variant={roleBadgeVariants[currentRole]} className="mr-2">
-                {roleLabels[currentRole]}
+                {roleDisplayLabel}
               </Badge>
               {assignedBranchId && (
                 <span className="text-xs text-muted-foreground">
-                  {branches.find((b) => b.id === assignedBranchId)?.name.replace("Caffissimo", "").trim()}
+                  {assignedBranchName || "Assigned branch"}
                 </span>
               )}
             </DropdownMenuItem>
@@ -249,7 +287,16 @@ export function Header() {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive"
+              onSelect={(event) => {
+                event.preventDefault();
+                void handleLogout();
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -44,7 +44,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              The branch you're looking for doesn't exist.
+              The branch you are looking for does not exist.
             </p>
             <Button onClick={() => router.push("/admin/branches")} className="mt-4">
               Back to Branches

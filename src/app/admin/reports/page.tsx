@@ -81,7 +81,8 @@ export default function ReportsPage() {
 
   // Reset daily pagination when filters change
   useEffect(() => {
-    setDailyPage(0);
+    const timeout = window.setTimeout(() => setDailyPage(0), 0);
+    return () => window.clearTimeout(timeout);
   }, [dateRange, selectedBranchId, sourceFilter, paymentFilter]);
 
   // Daily summary data

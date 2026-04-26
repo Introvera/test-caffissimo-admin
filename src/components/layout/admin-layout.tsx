@@ -1,6 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 import { useAppStore } from "@/stores/app-store";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
@@ -12,12 +14,50 @@ function HeaderFallback() {
   );
 }
 
+function AuthLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="text-center">
+        <p className="text-sm font-medium">Checking access...</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Verifying your admin session
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { firebaseUser, isAuthorized, isLoading } = useAuth();
   const { sidebarCollapsed } = useAppStore();
+  const isLoginPage = pathname === "/admin/login";
+
+  useEffect(() => {
+    if (isLoading || isLoginPage || (firebaseUser && isAuthorized)) {
+      return;
+    }
+
+    const redirectPath =
+      pathname && pathname !== "/admin"
+        ? `?redirect=${encodeURIComponent(pathname)}`
+        : "";
+
+    router.replace(`/admin/login${redirectPath}`);
+  }, [firebaseUser, isAuthorized, isLoading, isLoginPage, pathname, router]);
+
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  if (isLoading || !firebaseUser || !isAuthorized) {
+    return <AuthLoading />;
+  }
 
   return (
     <div className="min-h-screen bg-sidebar">

@@ -71,14 +71,12 @@ export const useAppStore = create<AppState>()(
       mobileMenuOpen: false,
       setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
 
-      devMode: true,
+      devMode: false,
       setDevMode: (enabled) => set({ devMode: enabled }),
     }),
     {
       name: "caffissimo-admin-storage",
       partialize: (state) => ({
-        currentRole: state.currentRole,
-        assignedBranchId: state.assignedBranchId,
         sidebarCollapsed: state.sidebarCollapsed,
         devMode: state.devMode,
       }),

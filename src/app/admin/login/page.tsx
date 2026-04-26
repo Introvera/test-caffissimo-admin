@@ -1,63 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAppStore } from "@/stores/app-store";
-import { Role } from "@/types";
 
-const DEMO_ACCOUNTS = [
-  { email: "alex@caffissimo.com", password: "admin", role: "super_admin" as Role, name: "Super Admin" },
-  { email: "maria@caffissimo.com", password: "admin", role: "branch_owner" as Role, name: "Branch Owner" },
-  { email: "michael@caffissimo.com", password: "admin", role: "supervisor" as Role, name: "Supervisor" },
-];
+function getRedirectPath() {
+  if (typeof window === "undefined") {
+    return "/admin/dashboard";
+  }
+
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+
+  if (!redirect || redirect === "/admin/login" || !redirect.startsWith("/admin")) {
+    return "/admin/dashboard";
+  }
+
+  return redirect;
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setRole, setAssignedBranchId } = useAppStore();
+  const { error: authError, firebaseUser, isAuthorized, isLoading, signIn } =
+    useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && firebaseUser && isAuthorized) {
+      router.replace(getRedirectPath());
+    }
+  }, [firebaseUser, isAuthorized, isLoading, router]);
+
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const account = DEMO_ACCOUNTS.find(
-      (a) => a.email === email && a.password === password
-    );
-
-    if (account) {
-      setRole(account.role);
-      if (account.role !== "super_admin") {
-        setAssignedBranchId("branch-1");
-      }
-      router.push("/admin/dashboard");
-    } else {
-      setError("Invalid email or password");
+    try {
+      await signIn(email.trim(), password);
+      router.replace(getRedirectPath());
+    } catch (signInError) {
+      setError(
+        signInError instanceof Error
+          ? signInError.message
+          : "Unable to sign in."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsLoading(false);
   };
 
-  const handleDemoLogin = (role: Role) => {
-    setRole(role);
-    if (role !== "super_admin") {
-      setAssignedBranchId("branch-1");
-    }
-    router.push("/admin/dashboard");
-  };
+  const buttonDisabled = isSubmitting || isLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-card p-4 relative">
@@ -74,11 +88,9 @@ export default function LoginPage() {
             />
           </div>
           <CardTitle className="text-2xl">Caffissimo Admin</CardTitle>
-          <CardDescription>
-            Sign in to manage your coffee shop
-          </CardDescription>
+          <CardDescription>Sign in with your admin account</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -86,6 +98,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 placeholder="you@caffissimo.com"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -97,15 +110,17 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((value) => !value)}
                   className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -120,41 +135,10 @@ export default function LoginPage() {
               <p className="text-sm text-destructive text-center">{error}</p>
             )}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full" disabled={buttonDisabled}>
+              {buttonDisabled ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with demo
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {DEMO_ACCOUNTS.map((account) => (
-              <Button
-                key={account.role}
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => handleDemoLogin(account.role)}
-              >
-                <span className="flex-1 text-left">{account.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {account.email}
-                </span>
-              </Button>
-            ))}
-          </div>
-
-          <p className="text-xs text-center text-muted-foreground">
-            Demo password for all accounts: <code className="bg-muted px-1 rounded">admin</code>
-          </p>
         </CardContent>
       </Card>
     </div>

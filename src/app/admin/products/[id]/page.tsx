@@ -68,7 +68,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              The product you're looking for doesn't exist.
+              The product you are looking for does not exist.
             </p>
             <Button onClick={() => router.push("/admin/products")} className="mt-4">
               Back to Products
