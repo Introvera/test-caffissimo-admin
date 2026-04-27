@@ -36,8 +36,12 @@ type ProductFormData = z.infer<typeof productSchema>;
 
 export default function NewProductPage() {
   const router = useRouter();
-  const { data: categories = [] } = useGetCategoriesQuery();
-  const { data: branches = [] } = useGetBranchesQuery();
+  const { data: categoriesData } = useGetCategoriesQuery();
+  const categories = categoriesData?.items || [];
+  
+  const { data: branchesData } = useGetBranchesQuery();
+  const branches = branchesData?.items || [];
+  
   const [createProduct] = useCreateProductMutation();
 
   const {
@@ -60,9 +64,12 @@ export default function NewProductPage() {
   const onSubmit = async (data: ProductFormData) => {
     try {
       await createProduct({
-        ...data,
-        tags: data.tags.split(",").map((t) => t.trim()),
-        images: [], // Placeholder for real image upload
+        productName: data.name,
+        productDescription: data.description,
+        productCategoryId: data.categoryId,
+        productPrice: 0, // Set later or default
+        isVisible: true,
+        isActive: true,
       }).unwrap();
       router.push("/admin/products");
     } catch (err) {
@@ -132,8 +139,8 @@ export default function NewProductPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat: Category) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
+                        <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>
+                          {cat.categoryName}
                         </SelectItem>
                       ))}
                     </SelectContent>

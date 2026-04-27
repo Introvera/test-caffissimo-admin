@@ -91,6 +91,7 @@ const navEntries: NavEntry[] = [
     permission: canAccessAdmin,
     children: [
       { title: "Products", href: "/admin/products", icon: Package },
+      { title: "Toppings", href: "/admin/toppings", icon: Coffee },
       { title: "Offers", href: "/admin/offers", icon: Tags },
     ],
   },

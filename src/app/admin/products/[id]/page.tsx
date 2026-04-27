@@ -27,7 +27,13 @@ import {
   useGetCategoriesQuery, 
   useUpdateProductMutation 
 } from "@/stores/api/productApi";
-import { UserRole, Category } from "@/types";
+import { 
+  useGetToppingsQuery,
+  useGetProductToppingsQuery,
+  useCreateProductToppingMutation,
+  useDeleteProductToppingMutation
+} from "@/stores/api/toppingApi";
+import { UserRole, Category, Topping } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 
@@ -62,7 +68,15 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { data: categoriesData } = useGetCategoriesQuery();
   const categories = categoriesData?.items || [];
   
+  const { data: toppingsData } = useGetToppingsQuery();
+  const allToppings = toppingsData?.items || [];
+  const { data: productToppings } = useGetProductToppingsQuery(resolvedParams.id, {
+    skip: !resolvedParams.id || resolvedParams.id === "new"
+  });
+  
   const [updateProduct] = useUpdateProductMutation();
+  const [createProductTopping] = useCreateProductToppingMutation();
+  const [deleteProductTopping] = useDeleteProductToppingMutation();
 
   const {
     register,
@@ -97,6 +111,23 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       router.push("/admin/products");
     } catch (err) {
       console.error("Failed to update product:", err);
+    }
+  };
+
+  const handleToggleTopping = async (toppingId: string) => {
+    const existingMapping = productToppings?.find(pt => pt.toppingId === toppingId);
+    try {
+      if (existingMapping) {
+        await deleteProductTopping(existingMapping.productToppingId).unwrap();
+      } else {
+        await createProductTopping({
+          productId: resolvedParams.id,
+          toppingId,
+          isActive: true
+        }).unwrap();
+      }
+    } catch (err) {
+      console.error("Failed to toggle product topping:", err);
     }
   };
 
@@ -241,6 +272,40 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     <div className="text-center">
                       <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                       <p className="text-xs text-muted-foreground">No image available</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Allowed Toppings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Allowed Customizations (Toppings)</CardTitle>
+                <CardDescription>Select which toppings can be added to this product</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {allToppings.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No toppings available. Create some in the Toppings menu first.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                      {allToppings.map(topping => {
+                        const isAllowed = productToppings?.some(pt => pt.toppingId === topping.toppingId);
+                        return (
+                          <div key={topping.toppingId} className="flex items-center space-x-2 border p-3 rounded-md">
+                            <Switch 
+                              id={`topping-${topping.toppingId}`} 
+                              checked={!!isAllowed}
+                              onClick={() => handleToggleTopping(topping.toppingId)}
+                              disabled={!canEdit}
+                            />
+                            <Label htmlFor={`topping-${topping.toppingId}`} className="text-sm cursor-pointer mb-0">
+                              {topping.toppingName}
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

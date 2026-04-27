@@ -121,13 +121,24 @@ export type OrderStatus =
   | "cancelled";
 export type PaymentMethod = "cash" | "card" | "online" | "external";
 
+export interface OrderItemTopping {
+  orderItemToppingId: string;
+  orderItemId: string;
+  toppingId: string;
+  toppingName: string;
+  price: number;
+  quantity: number;
+}
+
 export interface OrderItem {
   id: string;
   productId: string;
   productName: string;
+  variantName?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  toppings?: OrderItemTopping[];
 }
 
 export interface Order {
@@ -290,4 +301,43 @@ export interface ReportFilters {
   source?: OrderSource | "all";
   paymentMethod?: PaymentMethod | "all";
   status?: OrderStatus | "all";
+}
+
+// ============== TOPPINGS & VARIANTS ==============
+export interface ToppingCategory {
+  toppingCategoryId: string;
+  categoryName: string;
+  isActive: boolean;
+}
+
+export interface Topping {
+  toppingId: string;
+  toppingCategoryId: string;
+  toppingName: string;
+  price: number;
+  isActive: boolean;
+}
+
+export interface ProductTopping {
+  productToppingId: string;
+  productId: string;
+  toppingId: string;
+  isActive: boolean;
+}
+
+export interface BranchTopping {
+  branchToppingId: string;
+  branchId: string;
+  toppingId: string;
+  price: number;
+  isAvailable: boolean;
+  isVisible: boolean;
+}
+
+export interface BranchProductVariant {
+  branchProductVariantId: string;
+  branchProductId: string;
+  variantName: string;
+  price: number;
+  isAvailable: boolean;
 }

@@ -72,10 +72,10 @@ export default function NewBranchPage() {
     e.preventDefault();
     try {
       await createBranch({
-        name,
-        address,
-        phone,
-        email,
+        branchName: name,
+        branchAddress: address,
+        branchPhoneNumber: phone,
+        branchEmail: email,
         isOpen,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         openingHours: openingHours as any,

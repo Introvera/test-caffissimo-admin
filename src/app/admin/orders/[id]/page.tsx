@@ -223,8 +223,26 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                         {index + 1}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{item.productName}</p>
-                        <p className="text-xs text-muted-foreground">{formatCurrency(item.unitPrice)} each</p>
+                        <p className="text-sm font-medium flex items-center gap-1.5">
+                          {item.productName}
+                          {item.variantName && (
+                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm font-normal">
+                              {item.variantName}
+                            </span>
+                          )}
+                        </p>
+                        {item.toppings && item.toppings.length > 0 && (
+                          <div className="mt-1 flex flex-col gap-0.5 mb-1.5">
+                            {item.toppings.map(t => (
+                              <span key={t.orderItemToppingId} className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <span className="text-[8px]">▶</span>
+                                {t.quantity > 1 ? `${t.quantity}x ` : ""}{t.toppingName}
+                                {t.price > 0 && <span className="opacity-70">(+{formatCurrency(t.price)})</span>}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1 border-t border-border/40 pt-1 w-max inline-block">{formatCurrency(item.unitPrice)} base price</p>
                       </div>
                     </div>
                     <span className="text-sm tabular-nums w-8 text-center">{item.quantity}</span>
