@@ -1,31 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { format, parseISO } from "date-fns";
 import {
   Plus,
+  Tag,
   Calendar,
-  Percent,
-  DollarSign,
-  Edit,
-  Tags,
-  Gift,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
-import { format, parseISO, isBefore, isAfter } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -35,309 +27,420 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useAppSelector } from "@/stores/store";
+import { useGetOffersQuery, useCreateOfferMutation } from "@/stores/api/offerApi";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { useGetProductsQuery } from "@/stores/api/productApi";
 import { canManageOffers } from "@/lib/rbac";
-import { offers, branches, categories, products } from "@/data/seed";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { Offer } from "@/types";
+import { CreateOfferRequest, OfferType } from "@/types";
+import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
-type FormDiscountType = "percent" | "fixed" | "item_wise";
+const OFFER_TYPE_LABELS: Record<OfferType, string> = {
+  FlatDiscount: "Flat Discount",
+  PercentageDiscount: "Percentage Discount",
+  BuyXGetY: "Buy X Get Y",
+  FreeItem: "Free Item",
+};
+
+const OFFER_TYPE_COLORS: Record<OfferType, string> = {
+  FlatDiscount: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  PercentageDiscount: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  BuyXGetY: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  FreeItem: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+};
+
+const DEFAULT_FORM: CreateOfferRequest = {
+  offerName: "",
+  description: "",
+  offerType: "FlatDiscount",
+  startDateTime: "",
+  endDateTime: "",
+  isActive: true,
+  buyAmount: undefined,
+  getAmount: undefined,
+  branchIds: [],
+  items: [],
+};
 
 export default function OffersPage() {
-  const { currentRole, selectedBranchId } = useAppSelector((state) => state.ui);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [formDiscountType, setFormDiscountType] = useState<FormDiscountType>("percent");
-  const [formBuyQuantity, setFormBuyQuantity] = useState(1);
-  const [formGetQuantity, setFormGetQuantity] = useState(1);
+  const currentRole = useAppSelector((state) => state.auth.user?.role);
+  const [page, setPage] = useState(1);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState<CreateOfferRequest>(DEFAULT_FORM);
+
+  const PAGE_SIZE = 10;
+
+  const { data, isLoading } = useGetOffersQuery({ page, pageSize: PAGE_SIZE });
+  const { data: branchesData } = useGetBranchesQuery();
+  const { data: productsData } = useGetProductsQuery({ pageSize: 100 });
+  const [createOffer, { isLoading: isCreating }] = useCreateOfferMutation();
 
   const canManage = canManageOffers(currentRole);
+  const offers = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  const filteredOffers = selectedBranchId
-    ? offers.filter((o) => !o.branchIds || o.branchIds.includes(selectedBranchId))
-    : offers;
-
-  const getOfferStatus = (offer: Offer) => {
-    const now = new Date();
-    const start = parseISO(offer.startDate);
-    const end = parseISO(offer.endDate);
-
-    if (!offer.isActive) return { label: "Inactive", variant: "secondary" as const };
-    if (isBefore(now, start)) return { label: "Scheduled", variant: "warning" as const };
-    if (isAfter(now, end)) return { label: "Expired", variant: "destructive" as const };
-    return { label: "Active", variant: "success" as const };
+  const handleCreate = async () => {
+    if (!form.offerName || !form.startDateTime || !form.endDateTime) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    try {
+      await createOffer(form).unwrap();
+      toast.success("Offer created successfully");
+      setDialogOpen(false);
+      setForm(DEFAULT_FORM);
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to create offer");
+    }
   };
 
-  const getAppliesTo = (offer: Offer) => {
-    const parts: string[] = [];
-    if (offer.categoryIds?.length) {
-      const catNames = offer.categoryIds
-        .map((id) => categories.find((c) => c.productCategoryId === id)?.categoryName)
-        .filter(Boolean);
-      parts.push(`Categories: ${catNames.join(", ")}`);
-    }
-    if (offer.productIds?.length) {
-      const prodNames = offer.productIds
-        .map((id) => products.find((p) => p.productId === id)?.productName)
-        .filter(Boolean)
-        .slice(0, 3);
-      parts.push(`Products: ${prodNames.join(", ")}${offer.productIds.length > 3 ? "..." : ""}`);
-    }
-    if (!parts.length) return "All products";
-    return parts.join(" | ");
+  const toggleBranch = (branchId: string) => {
+    setForm((f) => ({
+      ...f,
+      branchIds: f.branchIds.includes(branchId)
+        ? f.branchIds.filter((id) => id !== branchId)
+        : [...f.branchIds, branchId],
+    }));
   };
 
-  const getBranchScope = (offer: Offer) => {
-    if (!offer.branchIds?.length) return "All branches";
-    return offer.branchIds
-      .map((id) => branches.find((b) => b.branchId === id)?.branchName.replace("Caffissimo", "").trim())
-      .filter(Boolean)
-      .join(", ");
+  const toggleProduct = (productId: string) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.includes(productId)
+        ? f.items.filter((id) => id !== productId)
+        : [...f.items, productId],
+    }));
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Offers & Promotions"
-        description="Create and manage discounts and promotions"
+        title="Offers"
+        description="Manage promotional offers and discounts"
         actions={
-          canManage && (
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          canManage ? (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Offer
+                  New Offer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Create New Offer</DialogTitle>
+                  <DialogTitle>Create Offer</DialogTitle>
                   <DialogDescription>
-                    Set up a new promotion for your customers
+                    Define a new promotional offer for your branches.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+
+                <div className="space-y-4 py-2">
+                  {/* Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="offer-name">Offer Name *</Label>
+                    <Input
+                      id="offer-name"
+                      placeholder="e.g. Summer Sale 20%"
+                      value={form.offerName}
+                      onChange={(e) => setForm((f) => ({ ...f, offerName: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="offer-desc">Description</Label>
+                    <Textarea
+                      id="offer-desc"
+                      placeholder="Optional description..."
+                      rows={2}
+                      value={form.description ?? ""}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Offer Type */}
+                  <div className="space-y-2">
+                    <Label>Offer Type *</Label>
+                    <Select
+                      value={form.offerType}
+                      onValueChange={(v) => setForm((f) => ({ ...f, offerType: v as OfferType }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(OFFER_TYPE_LABELS) as OfferType[]).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {OFFER_TYPE_LABELS[type]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Buy/Get amounts for BuyXGetY */}
+                  {form.offerType === "BuyXGetY" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="buy-amount">Buy Amount</Label>
+                        <Input
+                          id="buy-amount"
+                          type="number"
+                          min={1}
+                          placeholder="e.g. 2"
+                          value={form.buyAmount ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, buyAmount: parseInt(e.target.value) || undefined }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="get-amount">Get Amount</Label>
+                        <Input
+                          id="get-amount"
+                          type="number"
+                          min={1}
+                          placeholder="e.g. 1"
+                          value={form.getAmount ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, getAmount: parseInt(e.target.value) || undefined }))}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dates */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Offer Name</Label>
-                      <Input placeholder="e.g., Morning Rush Discount" />
+                      <Label htmlFor="start-date">Start Date *</Label>
+                      <Input
+                        id="start-date"
+                        type="datetime-local"
+                        value={form.startDateTime}
+                        onChange={(e) => setForm((f) => ({ ...f, startDateTime: e.target.value }))}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label>Discount Type</Label>
-                      <Select
-                        value={formDiscountType}
-                        onValueChange={(v) => setFormDiscountType(v as FormDiscountType)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="percent">Percentage Off</SelectItem>
-                          <SelectItem value="fixed">Fixed Amount</SelectItem>
-                          <SelectItem value="item_wise">Item Wise (Buy One Get One)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="end-date">End Date *</Label>
+                      <Input
+                        id="end-date"
+                        type="datetime-local"
+                        value={form.endDateTime}
+                        onChange={(e) => setForm((f) => ({ ...f, endDateTime: e.target.value }))}
+                      />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea placeholder="Describe the offer..." />
+
+                  {/* Active toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label>Active immediately</Label>
+                    <Switch
+                      checked={form.isActive}
+                      onCheckedChange={(v) => setForm((f) => ({ ...f, isActive: v }))}
+                    />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    {formDiscountType === "item_wise" ? (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Buy (quantity)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={formBuyQuantity}
-                            onChange={(e) => setFormBuyQuantity(Number(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Get (quantity)</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={formGetQuantity}
-                            onChange={(e) => setFormGetQuantity(Number(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="space-y-2" />
-                      </>
-                    ) : (
-                      <div className="space-y-2">
-                        <Label>Discount Value</Label>
-                        <Input type="number" placeholder="20" />
+
+                  {/* Branch selection */}
+                  {branchesData?.items && branchesData.items.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Apply to Branches</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {branchesData.items.map((branch) => {
+                          const selected = form.branchIds.includes(branch.branchId);
+                          return (
+                            <button
+                              key={branch.branchId}
+                              type="button"
+                              onClick={() => toggleBranch(branch.branchId)}
+                              className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-foreground border-border hover:bg-muted"
+                              }`}
+                            >
+                              {branch.branchName.replace("Caffissimo", "").trim()}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label>Start Date</Label>
-                      <Input type="date" />
+                      {form.branchIds.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No branches selected — offer will apply globally.
+                        </p>
+                      )}
                     </div>
+                  )}
+
+                  {/* Product selection */}
+                  {productsData?.items && productsData.items.length > 0 && (
                     <div className="space-y-2">
-                      <Label>End Date</Label>
-                      <Input type="date" />
+                      <Label>Apply to Products</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {productsData.items.map((product) => {
+                          const selected = form.items.includes(product.productId);
+                          return (
+                            <button
+                              key={product.productId}
+                              type="button"
+                              onClick={() => toggleProduct(product.productId)}
+                              className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background text-foreground border-border hover:bg-muted"
+                              }`}
+                            >
+                              {product.productName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {form.items.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          No products selected — offer will apply to all products.
+                        </p>
+                      )}
                     </div>
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label>Applies to Categories</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select categories (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>
-                            {cat.categoryName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Branch Scope</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All branches" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Branches</SelectItem>
-                        {branches.map((branch) => (
-                          <SelectItem key={branch.branchId} value={branch.branchId}>
-                            {branch.branchName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  )}
                 </div>
+
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={() => setCreateDialogOpen(false)}>
+                  <Button
+                    onClick={handleCreate}
+                    disabled={isCreating || !form.offerName || !form.startDateTime || !form.endDateTime}
+                  >
+                    {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     Create Offer
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )
+          ) : undefined
         }
       />
 
-      {filteredOffers.length === 0 ? (
+      {/* Offer Grid */}
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 rounded-xl" />
+          ))}
+        </div>
+      ) : offers.length === 0 ? (
         <Card>
-          <CardContent>
+          <CardContent className="py-12">
             <EmptyState
-              icon={Tags}
+              icon={Tag}
               title="No offers yet"
-              description="Create your first offer to attract customers"
+              description="Create your first promotional offer to get started"
               action={
-                canManage && (
-                  <Button onClick={() => setCreateDialogOpen(true)}>
+                canManage ? (
+                  <Button onClick={() => setDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Offer
+                    New Offer
                   </Button>
-                )
+                ) : undefined
               }
             />
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredOffers.map((offer, index) => {
-            const status = getOfferStatus(offer);
-            return (
-              <motion.div
-                key={offer.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10">
-                          {offer.discountType === "percent" ? (
-                            <Percent className="h-5 w-5 text-primary" />
-                          ) : offer.discountType === "item_wise" ? (
-                            <Gift className="h-5 w-5 text-primary" />
-                          ) : (
-                            <DollarSign className="h-5 w-5 text-primary" />
-                          )}
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{offer.name}</CardTitle>
-                          <Badge variant={status.variant} className="mt-1">
-                            {status.label}
-                          </Badge>
-                        </div>
-                      </div>
-                      {canManage && (
-                        <Switch checked={offer.isActive} />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      {offer.description}
-                    </p>
-
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        {offer.discountType === "percent" ? (
-                          <span className="font-semibold text-lg text-primary">
-                            {offer.discountValue}% OFF
-                          </span>
-                        ) : offer.discountType === "item_wise" ? (
-                          <span className="font-semibold text-lg text-primary">
-                            Buy {offer.buyQuantity ?? 1} Get {offer.getQuantity ?? 1}
-                          </span>
-                        ) : (
-                          <span className="font-semibold text-lg text-primary">
-                            {formatCurrency(offer.discountValue)} OFF
-                          </span>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {offers.map((offer) => {
+              const isExpired = new Date(offer.endDateTime) < new Date();
+              return (
+                <Card key={offer.offerId} className="flex flex-col">
+                  <CardContent className="p-5 flex flex-col gap-3 flex-1">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate">{offer.offerName}</p>
+                        {offer.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {offer.description}
+                          </p>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {formatDate(offer.startDate)} - {formatDate(offer.endDate)}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${OFFER_TYPE_COLORS[offer.offerType]}`}>
+                          {OFFER_TYPE_LABELS[offer.offerType]}
                         </span>
+                        <Badge
+                          variant={offer.isActive && !isExpired ? "default" : "outline"}
+                          className="text-[10px]"
+                        >
+                          {isExpired ? "Expired" : offer.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
-
-                      <p className="text-xs text-muted-foreground">
-                        {getAppliesTo(offer)}
-                      </p>
-
-                      <p className="text-xs text-muted-foreground">
-                        Branches: {getBranchScope(offer)}
-                      </p>
                     </div>
 
-                    {canManage && (
-                      <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
+                    {/* Dates */}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {format(parseISO(offer.startDateTime), "MMM d")}
+                        {" – "}
+                        {format(parseISO(offer.endDateTime), "MMM d, yyyy")}
+                      </span>
+                    </div>
+
+                    {/* Buy/Get */}
+                    {offer.offerType === "BuyXGetY" && offer.buyAmount && offer.getAmount && (
+                      <div className="text-xs text-muted-foreground">
+                        Buy <span className="font-semibold text-foreground">{offer.buyAmount}</span>
+                        {" "}get{" "}
+                        <span className="font-semibold text-foreground">{offer.getAmount}</span> free
                       </div>
                     )}
+
+                    {/* Branches */}
+                    {offer.offerBranches.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {offer.offerBranches.length} branch{offer.offerBranches.length !== 1 ? "es" : ""}
+                      </p>
+                    )}
+
+                    {/* Note: Edit/Delete not available until backend adds PUT/DELETE /api/offers/{id} */}
                   </CardContent>
                 </Card>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
 
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline" size="sm" className="h-8 w-8 p-0"
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline" size="sm" className="h-8 w-8 p-0"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

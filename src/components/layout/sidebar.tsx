@@ -26,6 +26,7 @@ import {
   Building2,
   UserCog,
   Wrench,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,7 @@ const navEntries: NavEntry[] = [
       { title: "Products", href: "/admin/products", icon: Package },
       { title: "Toppings", href: "/admin/toppings", icon: Coffee },
       { title: "Offers", href: "/admin/offers", icon: Tags },
+      { title: "Uber Menus", href: "/admin/uber-menus", icon: ExternalLink },
     ],
   },
   {

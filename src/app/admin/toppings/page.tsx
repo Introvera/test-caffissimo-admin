@@ -70,7 +70,7 @@ function SortIcon({ header }: { header: Header<Topping, unknown> }) {
 }
 
 export default function ToppingsPage() {
-  const currentRole = useAppSelector((state) => state.auth.user?.role) || "Cashier";
+  const currentRole = useAppSelector((state) => state.auth.user?.role);
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -132,7 +132,7 @@ export default function ToppingsPage() {
         header: "Base Price",
         cell: (info) => (
           <span className="font-medium text-foreground">
-            {formatCurrency(info.getValue())}
+            {formatCurrency(info.getValue() || 0)}
           </span>
         ),
       }),

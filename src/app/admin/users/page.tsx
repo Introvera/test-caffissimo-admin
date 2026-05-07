@@ -70,6 +70,13 @@ import { canManageUsers, canAccessAllBranches } from "@/lib/rbac";
 import { users, branches } from "@/data/seed";
 import { getInitials, formatDate } from "@/lib/utils";
 import { User, UserRole } from "@/types";
+import {
+  useCreateUserMutation,
+  useUpdateUserRoleMutation,
+  useResetUserPasswordMutation,
+  useDeleteUserMutation,
+} from "@/stores/api/userApi";
+import { toast } from "sonner";
 
 const roleLabels: Record<UserRole, string> = {
   [UserRole.SuperAdmin]: "Super Admin",
@@ -107,6 +114,10 @@ export default function UsersPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [updateUserRole] = useUpdateUserRoleMutation();
+  const [resetUserPassword] = useResetUserPasswordMutation();
+  const [deleteUser] = useDeleteUserMutation();
 
   const canManage = canManageUsers(currentRole);
   const effectiveBranchId = selectedBranchId || assignedBranchId;
@@ -129,6 +140,69 @@ export default function UsersPage() {
   const getBranchName = (branchId?: string) => {
     if (!branchId) return "All Branches";
     return branches.find((b) => b.branchId === branchId)?.branchName.replace("Caffissimo", "").trim() || "Unknown";
+  };
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    role: UserRole.Cashier,
+    branchId: "",
+  });
+
+  const handleCreateUser = async () => {
+    try {
+      await createUser({
+        ...formData,
+        role: formData.role.toString(),
+        branchId: formData.branchId || undefined,
+      }).unwrap();
+      toast.success("User created successfully");
+      setCreateDialogOpen(false);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        role: UserRole.Cashier,
+        branchId: "",
+      });
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to create user");
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    try {
+      await updateUserRole({ id: userId, data: { role: newRole } }).unwrap();
+      toast.success("User role updated");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to update role");
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    const newPassword = prompt("Enter new password:");
+    if (!newPassword) return;
+
+    try {
+      await resetUserPassword({ id: userId, data: { newPassword } }).unwrap();
+      toast.success("Password reset successfully");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to reset password");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      await deleteUser(userId).unwrap();
+      toast.success("User deleted successfully");
+    } catch (error: any) {
+      toast.error(error?.data?.message || "Failed to delete user");
+    }
   };
 
   const columns = useMemo(
@@ -202,14 +276,17 @@ export default function UsersPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit User
+              <DropdownMenuItem onClick={() => handleResetPassword(info.row.original.id)}>
+                <Shield className="h-4 w-4 mr-2" />
+                Reset Password
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => handleDeleteUser(info.row.original.id)}
+              >
                 <UserX className="h-4 w-4 mr-2" />
-                {info.row.original.isActive ? "Disable" : "Enable"} User
+                Delete User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -268,27 +345,62 @@ export default function UsersPage() {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
-                  Add a new user to the system
+                  Add a new user to the system. They will receive an email to access their account.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input placeholder="John Doe" />
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input 
+                      id="firstName" 
+                      placeholder="John" 
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input 
+                      id="lastName" 
+                      placeholder="Doe" 
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" placeholder="john@caffissimo.com" />
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="john@caffissimo.com" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select defaultValue={UserRole.Cashier}>
-                    <SelectTrigger>
-                      <SelectValue />
+                  <Label htmlFor="password">Temporary Password</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select 
+                    value={formData.role} 
+                    onValueChange={(v) => setFormData({ ...formData, role: v as UserRole })}
+                  >
+                    <SelectTrigger id="role">
+                      <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
                       {canAccessAllBranches(currentRole) && (
@@ -302,9 +414,12 @@ export default function UsersPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Branch Assignment</Label>
-                  <Select>
-                    <SelectTrigger>
+                  <Label htmlFor="branch">Branch Assignment</Label>
+                  <Select 
+                    value={formData.branchId} 
+                    onValueChange={(v) => setFormData({ ...formData, branchId: v })}
+                  >
+                    <SelectTrigger id="branch">
                       <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
@@ -321,8 +436,8 @@ export default function UsersPage() {
                 <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setCreateDialogOpen(false)}>
-                  Create User
+                <Button onClick={handleCreateUser} disabled={isCreating}>
+                  {isCreating ? "Creating..." : "Create User"}
                 </Button>
               </DialogFooter>
             </DialogContent>

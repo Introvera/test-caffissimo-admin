@@ -72,7 +72,7 @@ function SortIcon({ header }: { header: Header<Product, unknown> }) {
 }
 
 export default function ProductsPage() {
-  const currentRole = useAppSelector((state) => state.auth.user?.role) || "Cashier";
+  const currentRole = useAppSelector((state) => state.auth.user?.role);
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -120,7 +120,7 @@ export default function ProductsPage() {
                 {info.getValue()}
               </Link>
               <p className="text-xs text-muted-foreground line-clamp-1">
-                {info.row.original.productDescription}
+                {info.row.original.productDescription || ""}
               </p>
             </div>
           </div>
@@ -128,13 +128,13 @@ export default function ProductsPage() {
       }),
       columnHelper.accessor("productCategoryName", {
         header: "Category",
-        cell: (info) => <Badge variant="secondary">{info.getValue()}</Badge>,
+        cell: (info) => <Badge variant="secondary">{info.getValue() || "No Category"}</Badge>,
       }),
       columnHelper.accessor("productPrice", {
         header: "Price",
         cell: (info) => (
           <span className="font-medium text-foreground">
-            {formatCurrency(info.getValue())}
+            {formatCurrency(info.getValue() || 0)}
           </span>
         ),
       }),

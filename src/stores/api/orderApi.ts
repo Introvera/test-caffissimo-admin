@@ -1,42 +1,65 @@
 import { baseApi } from "./baseApi";
-import { Order } from "@/types";
-
-interface GetOrdersParams {
-  page?: number;
-  pageSize?: number;
-  branchId?: string | null;
-  search?: string;
-  status?: string;
-}
-
-interface OrdersResponse {
-  items: Order[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+import {
+  OrderResponse,
+  OrderSummaryResponse,
+  CreateOrderRequest,
+  UpdateOrderRequest,
+  PagedResult,
+  OrderListParams,
+} from "@/types";
 
 export const orderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getOrders: builder.query<OrdersResponse, GetOrdersParams>({
-      query: ({ page = 1, pageSize = 20, branchId, search, status }) => {
-        let url = `/api/orders?page=${page}&pageSize=${pageSize}`;
-        if (branchId) url += `&branchId=${branchId}`;
-        if (search) url += `&search=${encodeURIComponent(search)}`;
-        if (status) url += `&orderStatus=${status}`;
-        return url;
-      },
+    // GET /api/orders  (paged, filterable)
+    getOrders: builder.query<PagedResult<OrderSummaryResponse>, OrderListParams | void>({
+      query: (params) => ({
+        url: "/api/orders",
+        params: params || undefined,
+      }),
       providesTags: ["Order"],
     }),
-    updateOrderStatus: builder.mutation<Order, { id: string; status: string }>({
-      query: ({ id, status }) => ({
-        url: `/api/orders/${id}/status`,
-        method: "PATCH",
-        body: { status },
+
+    // GET /api/orders/{id}
+    getOrderById: builder.query<OrderResponse, string>({
+      query: (id) => `/api/orders/${id}`,
+      providesTags: (result, error, id) => [{ type: "Order", id }],
+    }),
+
+    // POST /api/orders
+    createOrder: builder.mutation<OrderResponse, CreateOrderRequest>({
+      query: (data) => ({
+        url: "/api/orders",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Order"],
+    }),
+
+    // PUT /api/orders/{id}  — full update including status change
+    updateOrder: builder.mutation<OrderResponse, { id: string; data: UpdateOrderRequest }>({
+      query: ({ id, data }) => ({
+        url: `/api/orders/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Order", id }, "Order"],
+    }),
+
+    // DELETE /api/orders/{id}
+    deleteOrder: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/orders/${id}`,
+        method: "DELETE",
       }),
       invalidatesTags: ["Order"],
     }),
   }),
 });
 
-export const { useGetOrdersQuery, useUpdateOrderStatusMutation } = orderApi;
+export const {
+  useGetOrdersQuery,
+  useGetOrderByIdQuery,
+  useCreateOrderMutation,
+  useUpdateOrderMutation,
+  useDeleteOrderMutation,
+} = orderApi;
