@@ -26,8 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateRangeCalendar } from "@/components/ui/calendar";
 import { useAppDispatch, useAppSelector } from "@/stores/store";
-import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen } from "@/stores/slices/uiSlice";
-import { logout } from "@/stores/slices/authSlice";
+import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen, setRole } from "@/stores/slices/uiSlice";
+import { logout, setUserRole } from "@/stores/slices/authSlice";
 import { canAccessAllBranches } from "@/lib/rbac";
 import { branches } from "@/data/seed";
 import { format } from "date-fns";
@@ -63,9 +63,12 @@ export function Header() {
     selectedBranchId,
     dateRange,
     dateRangePreset,
+    currentRole: uiRole,
   } = useAppSelector((state) => state.ui);
   
-  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const authRole = useAppSelector((state) => state.auth.user?.role);
+  const currentRole = uiRole || authRole || UserRole.Cashier;
+  
   const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
   const userName = useAppSelector((state) => state.auth.user?.name) || "User";
   const userEmail = useAppSelector((state) => state.auth.user?.email) || "user@caffissimo.com";
@@ -82,6 +85,12 @@ export function Header() {
 
   const handleBranchChange = (branchId: string) => {
     dispatch(setSelectedBranchId(branchId === "all" ? null : branchId));
+  };
+
+  const handleRoleChange = (role: string) => {
+    const newRole = role as UserRole;
+    dispatch(setRole(newRole));
+    dispatch(setUserRole(newRole));
   };
 
   return (
@@ -175,6 +184,26 @@ export function Header() {
         )}
 
 
+
+        {/* Role Switcher (Temporary for development) */}
+        <div className="hidden lg:flex items-center gap-2 border-r pr-2 mr-2">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground whitespace-nowrap">Role Switch:</span>
+          <Select
+            value={currentRole}
+            onValueChange={handleRoleChange}
+          >
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-muted/50 border-none">
+              <SelectValue placeholder="Change Role" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(UserRole).map((role) => (
+                <SelectItem key={role} value={role} className="text-xs">
+                  {roleLabels[role]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Theme Toggle */}
         <ThemeToggleSimple />

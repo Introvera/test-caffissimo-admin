@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
-import { User } from "@/types";
+import { User, UserRole } from "@/types";
 import Cookies from "js-cookie";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -88,6 +88,14 @@ export const authSlice = createSlice({
       state.isLoading = false;
       state.error = action.payload;
     },
+    setUserRole(state, action: PayloadAction<UserRole>) {
+      if (state.user) {
+        state.user = {
+          ...state.user,
+          role: action.payload,
+        };
+      }
+    },
     logout(state) {
       state.user = null;
       state.token = null;
@@ -97,6 +105,6 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setAuthStart, setAuthSuccess, setAuthFailure, logout } = authSlice.actions;
+export const { setAuthStart, setAuthSuccess, setAuthFailure, setUserRole, logout } = authSlice.actions;
 
 export default authSlice.reducer;

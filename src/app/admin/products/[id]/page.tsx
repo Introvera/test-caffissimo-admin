@@ -1,17 +1,20 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Save, Package } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ArrowLeft, Upload, Plus, X, Save, Edit } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -19,41 +22,150 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/shared/page-header";
 import { useAppSelector } from "@/stores/store";
-import { canManageProducts } from "@/lib/rbac";
+import { isSuperAdmin, canManageProducts } from "@/lib/rbac";
 import { 
   useGetProductByIdQuery, 
   useGetCategoriesQuery, 
   useUpdateProductMutation 
 } from "@/stores/api/productApi";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { 
+  useGetBranchProductsQuery,
+  useCreateBranchProductMutation,
+  useUpdateBranchProductMutation,
+  useDeleteBranchProductMutation
+} from "@/stores/api/branchProductApi";
+import {
+  useCreateBranchProductVariantMutation,
+  useUpdateBranchProductVariantMutation,
+  useDeleteBranchProductVariantMutation
+} from "@/stores/api/variantApi";
 import { 
   useGetToppingsQuery,
   useGetProductToppingsQuery,
   useCreateProductToppingMutation,
   useDeleteProductToppingMutation
 } from "@/stores/api/toppingApi";
-import { UserRole, Category, Topping } from "@/types";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/utils";
-
-interface ProductFormData {
-  productName: string;
-  productDescription: string;
-  productCategoryId: string;
-  productPrice: number;
-  isVisible: boolean;
-  isActive: boolean;
-}
+import { Category, Branch, UserRole, BranchProductResponse } from "@/types";
+import { toast } from "sonner";
 
 const productSchema = z.object({
-  productName: z.string().min(2, "Name must be at least 2 characters"),
-  productDescription: z.string().min(10, "Description must be at least 10 characters"),
-  productCategoryId: z.string().min(1, "Please select a category"),
-  productPrice: z.number().min(0, "Price must be positive"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  categoryId: z.string().min(1, "Please select a category"),
   isVisible: z.boolean(),
   isActive: z.boolean(),
 });
+
+type ProductFormData = z.infer<typeof productSchema>;
+
+type VariantConfig = {
+  id: string;
+  originalId?: string;
+  variantName: string;
+  price: number;
+  isAvailable: boolean;
+};
+
+type BranchConfig = {
+  branchId: string;
+  originalId?: string;
+  isActive: boolean;
+  overridePosImage: File | string | null;
+  overrideEcomImages: (File | string)[];
+  variants: VariantConfig[];
+};
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function ImageUploader({ 
+  multiple = false, 
+  value, 
+  onChange,
+  disabled = false
+}: { 
+  multiple?: boolean, 
+  value: File | string | (File | string)[] | null, 
+  onChange: (files: File | File[] | null) => void,
+  disabled?: boolean
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (disabled) return;
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+    handleFiles(files);
+  };
+
+  const handleFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    if (multiple) {
+      onChange([...(Array.isArray(value) ? value : []), ...files] as File[]);
+    } else {
+      onChange(files[0]);
+    }
+  };
+
+  const removeFile = (e: React.MouseEvent, index?: number) => {
+    e.stopPropagation();
+    if (disabled) return;
+    if (multiple && Array.isArray(value)) {
+      const newValue = [...value];
+      newValue.splice(index!, 1);
+      onChange(newValue as any);
+    } else {
+      onChange(null);
+    }
+  };
+
+  const renderItem = (f: File | string, i?: number) => {
+    const isString = typeof f === "string";
+    const name = isString ? f.split("/").pop() || "Image" : (f as File).name;
+    return (
+      <Badge key={i ?? 'single'} variant="secondary" className="flex items-center gap-1">
+        <span className="truncate max-w-[120px]">{name}</span>
+        {!disabled && <X className="h-3 w-3 cursor-pointer hover:text-destructive flex-shrink-0" onClick={(e) => removeFile(e, i)} />}
+      </Badge>
+    );
+  };
+
+  return (
+    <div 
+      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${disabled ? 'opacity-60 cursor-not-allowed bg-muted/10' : 'cursor-pointer hover:bg-muted/50'}`}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+      onClick={() => !disabled && fileInputRef.current?.click()}
+    >
+      <input 
+        type="file" 
+        hidden 
+        ref={fileInputRef} 
+        multiple={multiple} 
+        accept="image/*"
+        onChange={(e) => handleFiles(Array.from(e.target.files || []))}
+        disabled={disabled}
+      />
+      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+      <p className="text-sm text-muted-foreground">
+        Drag and drop {multiple ? "images" : "an image"} here, or click to browse
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2 justify-center" onClick={e => e.stopPropagation()}>
+        {Array.isArray(value) ? value.map((f, i) => renderItem(f, i)) : value ? renderItem(value) : null}
+      </div>
+    </div>
+  );
+}
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -63,77 +175,279 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
   const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
-  
+  const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId);
+  const isSuper = isSuperAdmin(currentRole as UserRole);
+  const canEdit = canManageProducts(currentRole);
+
   const { data: product, isLoading: productLoading } = useGetProductByIdQuery(resolvedParams.id);
+  const { data: branchProductsData, isLoading: branchProductsLoading } = useGetBranchProductsQuery({ productId: resolvedParams.id, pageSize: 100 });
+  const branchProducts = branchProductsData?.items || [];
+
   const { data: categoriesData } = useGetCategoriesQuery();
   const categories = categoriesData?.items || [];
   
+  const { data: branchesData } = useGetBranchesQuery();
+  const branches = branchesData?.items || [];
+
   const { data: toppingsData } = useGetToppingsQuery();
   const allToppings = toppingsData?.items || [];
   const { data: productToppings } = useGetProductToppingsQuery(resolvedParams.id, {
     skip: !resolvedParams.id || resolvedParams.id === "new"
   });
-  
+
   const [updateProduct] = useUpdateProductMutation();
+  const [createBranchProduct] = useCreateBranchProductMutation();
+  const [updateBranchProduct] = useUpdateBranchProductMutation();
+  const [deleteBranchProduct] = useDeleteBranchProductMutation();
+  const [createBranchProductVariant] = useCreateBranchProductVariantMutation();
+  const [updateBranchProductVariant] = useUpdateBranchProductVariantMutation();
+  const [deleteBranchProductVariant] = useDeleteBranchProductVariantMutation();
   const [createProductTopping] = useCreateProductToppingMutation();
   const [deleteProductTopping] = useDeleteProductToppingMutation();
+
+  const [activeTab, setActiveTab] = useState("base");
+  const [branchConfigs, setBranchConfigs] = useState<BranchConfig[]>([]);
+  const [activeVariantTabs, setActiveVariantTabs] = useState<Record<string, string>>({});
+
+  const [basePosImage, setBasePosImage] = useState<File | string | null>(null);
+  const [baseEcomImages, setBaseEcomImages] = useState<(File | string)[]>([]);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedToppingIds, setSelectedToppingIds] = useState<string[]>([]);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     setValue,
     watch,
-    reset,
+    reset
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      categoryId: "",
+      isVisible: true,
+      isActive: true,
+    },
   });
 
   useEffect(() => {
-    if (product) {
+    if (product && branchProductsData && productToppings && !isInitialized) {
       reset({
-        productName: product.productName,
-        productDescription: product.productDescription || "",
-        productCategoryId: product.productCategoryId,
-        productPrice: product.productPrice,
+        name: product.productName,
+        description: product.productDescription || "",
+        categoryId: product.productCategoryId,
         isVisible: product.isVisible,
         isActive: product.isActive,
       });
-    }
-  }, [product, reset]);
+      setBasePosImage(product.posImage || null);
+      if (product.ecomImages) {
+        setBaseEcomImages(product.ecomImages.split(',').filter(Boolean));
+      }
 
-  const onSubmit = async (data: ProductFormData) => {
-    try {
-      await updateProduct({
-        id: resolvedParams.id,
-        data,
-      }).unwrap();
-      router.push("/admin/products");
-    } catch (err) {
-      console.error("Failed to update product:", err);
+      const initialConfigs: BranchConfig[] = branchProducts.map(bp => {
+        const bpVariants = bp.variants?.map(v => ({
+          id: generateId(),
+          originalId: v.branchProductVariantId,
+          variantName: v.variantName,
+          price: v.price,
+          isAvailable: v.isAvailable
+        })) || [];
+
+        return {
+          branchId: bp.branchId,
+          originalId: bp.branchProductId,
+          isActive: bp.isActive,
+          overridePosImage: bp.overridePosImage?.[0] || null,
+          overrideEcomImages: bp.overrideEcomImages || [],
+          variants: bpVariants
+        };
+      });
+
+      if (!isSuper && assignedBranchId && !initialConfigs.find(c => c.branchId === assignedBranchId)) {
+        const variantId = generateId();
+        initialConfigs.push({
+          branchId: assignedBranchId,
+          isActive: true,
+          overridePosImage: null,
+          overrideEcomImages: [],
+          variants: [{ id: variantId, variantName: "Normal", price: 0, isAvailable: true }]
+        });
+      }
+
+      setBranchConfigs(initialConfigs);
+
+      const variantTabs: Record<string, string> = {};
+      initialConfigs.forEach(c => {
+        if (c.variants.length > 0) {
+          variantTabs[c.branchId] = c.variants[0].id;
+        }
+      });
+      setActiveVariantTabs(variantTabs);
+      setSelectedToppingIds(productToppings.map(pt => pt.toppingId));
+      setIsInitialized(true);
+    }
+  }, [product, branchProductsData, productToppings, isInitialized, reset, isSuper, assignedBranchId, branchProducts]);
+
+  const addBranchConfig = (branchId: string) => {
+    const variantId = generateId();
+    setBranchConfigs(prev => [
+      ...prev,
+      {
+        branchId,
+        isActive: true,
+        overridePosImage: null,
+        overrideEcomImages: [],
+        variants: [{ id: variantId, variantName: "Normal", price: 0, isAvailable: true }]
+      }
+    ]);
+    setActiveVariantTabs(prev => ({ ...prev, [branchId]: variantId }));
+    setActiveTab(`branch-${branchId}`);
+  };
+
+  const removeBranchConfig = (branchId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBranchConfigs(prev => prev.filter(b => b.branchId !== branchId));
+    if (activeTab === `branch-${branchId}`) {
+      setActiveTab("base");
     }
   };
 
-  const handleToggleTopping = async (toppingId: string) => {
-    const existingMapping = productToppings?.find(pt => pt.toppingId === toppingId);
+  const updateBranchConfig = (branchId: string, updates: Partial<BranchConfig>) => {
+    setBranchConfigs(prev => prev.map(b => b.branchId === branchId ? { ...b, ...updates } : b));
+  };
+
+  const addVariant = (branchId: string) => {
+    const branch = branchConfigs.find(b => b.branchId === branchId);
+    if (!branch) return;
+    const newVariantId = generateId();
+    const newVariants = [...branch.variants, { id: newVariantId, variantName: "New Size", price: 0, isAvailable: true }];
+    updateBranchConfig(branchId, { variants: newVariants });
+    setActiveVariantTabs(prev => ({ ...prev, [branchId]: newVariantId }));
+  };
+
+  const updateVariant = (branchId: string, variantId: string, updates: Partial<VariantConfig>) => {
+    const branch = branchConfigs.find(b => b.branchId === branchId);
+    if (!branch) return;
+    const newVariants = branch.variants.map(v => v.id === variantId ? { ...v, ...updates } : v);
+    updateBranchConfig(branchId, { variants: newVariants });
+  };
+
+  const onSubmit = async (data: ProductFormData) => {
+    setIsSubmittingForm(true);
     try {
-      if (existingMapping) {
-        await deleteProductTopping(existingMapping.productToppingId).unwrap();
-      } else {
+      // 1. Update Base Product
+      await updateProduct({
+        id: resolvedParams.id,
+        data: {
+          productName: data.name,
+          productDescription: data.description,
+          productCategoryId: data.categoryId,
+          isVisible: data.isVisible,
+          isActive: data.isActive,
+          // Handle images uploads and URLs...
+        }
+      }).unwrap();
+
+      // 2. Handle Branch Products
+      // Find deleted branches
+      const branchIdsInState = new Set(branchConfigs.map(b => b.branchId));
+      const deletedBranches = branchProducts.filter(bp => !branchIdsInState.has(bp.branchId));
+      
+      for (const db of deletedBranches) {
+        await deleteBranchProduct(db.branchProductId).unwrap();
+      }
+
+      for (const branchConf of branchConfigs) {
+        if (!branchConf.originalId) {
+          // CREATE Branch Product
+          await createBranchProduct({
+            branchId: branchConf.branchId,
+            productId: resolvedParams.id,
+            isAvailable: branchConf.isActive,
+            variants: branchConf.variants.map(v => ({
+              variantName: v.variantName,
+              price: Number(v.price),
+              isAvailable: v.isAvailable
+            }))
+          }).unwrap();
+        } else {
+          // UPDATE Branch Product
+          await updateBranchProduct({
+            id: branchConf.originalId,
+            data: {
+              isAvailable: branchConf.isActive,
+              // handle image updates
+            }
+          }).unwrap();
+
+          // Compare Variants
+          const originalBranch = branchProducts.find(b => b.branchProductId === branchConf.originalId);
+          const originalVariants = originalBranch?.variants || [];
+          const currentVariantIds = new Set(branchConf.variants.map(v => v.originalId).filter(Boolean));
+          
+          // Delete removed variants
+          const deletedVariants = originalVariants.filter(v => !currentVariantIds.has(v.branchProductVariantId));
+          for (const dv of deletedVariants) {
+            await deleteBranchProductVariant(dv.branchProductVariantId).unwrap();
+          }
+
+          for (const v of branchConf.variants) {
+            if (!v.originalId) {
+              await createBranchProductVariant({
+                branchProductId: branchConf.originalId,
+                variantName: v.variantName,
+                price: Number(v.price),
+                isAvailable: v.isAvailable
+              }).unwrap();
+            } else {
+              await updateBranchProductVariant({
+                id: v.originalId,
+                data: {
+                  variantName: v.variantName,
+                  price: Number(v.price),
+                  isAvailable: v.isAvailable
+                }
+              }).unwrap();
+            }
+          }
+        }
+      }
+
+      // Handle Toppings
+      const originalToppingIds = new Set(productToppings?.map(pt => pt.toppingId) || []);
+      const currentToppingIds = new Set(selectedToppingIds);
+      
+      const addedToppings = selectedToppingIds.filter(id => !originalToppingIds.has(id));
+      const removedToppings = (productToppings || []).filter(pt => !currentToppingIds.has(pt.toppingId));
+      
+      for (const rt of removedToppings) {
+        await deleteProductTopping(rt.productToppingId).unwrap();
+      }
+      for (const at of addedToppings) {
         await createProductTopping({
           productId: resolvedParams.id,
-          toppingId,
+          toppingId: at,
           isActive: true
         }).unwrap();
       }
+
+      toast.success("Product updated successfully");
+      setIsEditing(false); // return to read-only mode after save
     } catch (err) {
-      console.error("Failed to toggle product topping:", err);
+      console.error("Failed to update product:", err);
+      toast.error("Failed to update product. Check console for details.");
+    } finally {
+      setIsSubmittingForm(false);
     }
   };
 
-  const canEdit = canManageProducts(currentRole);
+  const unconfiguredBranches = branches.filter(b => !branchConfigs.find(c => c.branchId === b.branchId));
 
-  if (productLoading) {
+  if (productLoading || branchProductsLoading || !isInitialized) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -156,223 +470,306 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         <PageHeader title="Product Not Found" />
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              The product you&apos;re looking for doesn&apos;t exist.
-            </p>
-            <Button onClick={() => router.push("/admin/products")} className="mt-4">
-              Back to Products
-            </Button>
+            <p className="text-muted-foreground">The product you're looking for doesn't exist.</p>
+            <Button onClick={() => router.push("/admin/products")} className="mt-4">Back to Products</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  const isFormDisabled = !canEdit || !isEditing;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 w-full">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <PageHeader
-          title={product.productName}
-          description="Edit product details and pricing"
-        />
+        <div className="flex-1 flex justify-between items-center">
+          <PageHeader
+            title={product.productName}
+            description={isEditing ? "Edit product details and pricing" : "Product details and pricing"}
+          />
+          {canEdit && !isEditing && (
+            <Button onClick={() => setIsEditing(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Product
+            </Button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Info */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Information</CardTitle>
-                <CardDescription>Core details of the product</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="productName">Product Name</Label>
-                  <Input
-                    id="productName"
-                    {...register("productName")}
-                    disabled={!canEdit}
-                  />
-                  {errors.productName && (
-                    <p className="text-sm text-destructive">{errors.productName.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="productDescription">Description</Label>
-                  <Textarea
-                    id="productDescription"
-                    rows={4}
-                    {...register("productDescription")}
-                    disabled={!canEdit}
-                  />
-                  {errors.productDescription && (
-                    <p className="text-sm text-destructive">
-                      {errors.productDescription.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={watch("productCategoryId")}
-                      onValueChange={(value) => setValue("productCategoryId", value)}
-                      disabled={!canEdit}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat: Category) => (
-                          <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>
-                            {cat.categoryName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="productPrice">Base Price</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                      <Input
-                        id="productPrice"
-                        type="number"
-                        step="0.01"
-                        {...register("productPrice", { valueAsNumber: true })}
-                        className="pl-7"
-                        disabled={!canEdit}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Images Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Image</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-video relative rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30">
-                  {product.posImage ? (
-                    <img
-                      src={product.posImage}
-                      alt={product.productName}
-                      className="h-full w-full object-contain rounded-lg"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <Package className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-xs text-muted-foreground">No image available</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Allowed Toppings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Allowed Customizations (Toppings)</CardTitle>
-                <CardDescription>Select which toppings can be added to this product</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {allToppings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No toppings available. Create some in the Toppings menu first.</p>
-                  ) : (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                      {allToppings.map(topping => {
-                        const isAllowed = productToppings?.some(pt => pt.toppingId === topping.toppingId);
-                        return (
-                          <div key={topping.toppingId} className="flex items-center space-x-2 border p-3 rounded-md">
-                            <Switch 
-                              id={`topping-${topping.toppingId}`} 
-                              checked={!!isAllowed}
-                              onClick={() => handleToggleTopping(topping.toppingId)}
-                              disabled={!canEdit}
-                            />
-                            <Label htmlFor={`topping-${topping.toppingId}`} className="text-sm cursor-pointer mb-0">
-                              {topping.toppingName}
-                            </Label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Visibility</Label>
-                    <p className="text-xs text-muted-foreground">Visible on platforms</p>
-                  </div>
-                  <Switch
-                    checked={watch("isVisible")}
-                    onCheckedChange={(checked) => setValue("isVisible", checked)}
-                    disabled={!canEdit}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Active Status</Label>
-                    <p className="text-xs text-muted-foreground">Overall availability</p>
-                  </div>
-                  <Switch
-                    checked={watch("isActive")}
-                    onCheckedChange={(checked) => setValue("isActive", checked)}
-                    disabled={!canEdit}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Category:</span>
-                  <span className="font-medium">{product.productCategoryName}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Price:</span>
-                  <span className="font-medium text-primary">{formatCurrency(product.productPrice)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {canEdit && (
-              <Card>
-                <CardContent className="pt-6">
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSubmitting ? "Saving..." : "Save Changes"}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center border-b pb-2 mb-4">
+            <TabsList className="bg-transparent h-auto p-0 justify-start">
+              <TabsTrigger 
+                value="base" 
+                className="data-[state=active]:bg-muted/50 rounded-none border-b-2 border-transparent data-[state=active]:border-primary pb-2"
+              >
+                Base
+              </TabsTrigger>
+              {branchConfigs.map(config => {
+                const b = branches.find(br => br.branchId === config.branchId);
+                return (
+                  <TabsTrigger 
+                    key={config.branchId} 
+                    value={`branch-${config.branchId}`}
+                    className="data-[state=active]:bg-muted/50 rounded-none border-b-2 border-transparent data-[state=active]:border-primary pb-2 flex items-center gap-2"
+                  >
+                    {b?.branchName.replace("Caffissimo", "").trim() || "Branch"}
+                    {isSuper && isEditing && <X className="h-3 w-3 hover:text-destructive z-10" onClick={(e) => removeBranchConfig(config.branchId, e)} />}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            
+            {isSuper && isEditing && unconfiguredBranches.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="ml-2 h-8" disabled={isFormDisabled}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add a branch variant
                   </Button>
-                </CardContent>
-              </Card>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {unconfiguredBranches.map(b => (
+                    <DropdownMenuItem key={b.branchId} onClick={() => addBranchConfig(b.branchId)}>
+                      {b.branchName.replace("Caffissimo", "").trim()}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
-        </div>
+
+          <TabsContent value="base" className="mt-0">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Product Information</CardTitle>
+                    <CardDescription>Basic details about the product</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Product Name</Label>
+                      <Input id="name" disabled={isFormDisabled} {...register("name")} />
+                      {errors.name && <p className="text-sm text-destructive">{errors.name.message as string}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" disabled={isFormDisabled} rows={4} {...register("description")} />
+                      {errors.description && <p className="text-sm text-destructive">{errors.description.message as string}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select disabled={isFormDisabled} value={watch("categoryId")} onValueChange={(value) => setValue("categoryId", value)}>
+                        <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat: Category) => (
+                            <SelectItem key={cat.productCategoryId} value={cat.productCategoryId}>{cat.categoryName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.categoryId && <p className="text-sm text-destructive">{errors.categoryId.message as string}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                      <div className="space-y-2 flex flex-col justify-center">
+                        <Label>Visible</Label>
+                        <Switch disabled={isFormDisabled} checked={watch("isVisible")} onCheckedChange={(val) => setValue("isVisible", val)} />
+                      </div>
+                      <div className="space-y-2 flex flex-col justify-center">
+                        <Label>Active</Label>
+                        <Switch disabled={isFormDisabled} checked={watch("isActive")} onCheckedChange={(val) => setValue("isActive", val)} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Toppings Section kept in base */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-center">
+                      Toppings
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" disabled={isFormDisabled || allToppings.length === selectedToppingIds.length}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Topping
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {allToppings.filter(t => !selectedToppingIds.includes(t.toppingId)).map(t => (
+                            <DropdownMenuItem key={t.toppingId} onClick={() => setSelectedToppingIds(prev => [...prev, t.toppingId])}>
+                              {t.toppingName}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardTitle>
+                    <CardDescription>Select which toppings can be added to this product</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedToppingIds.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No toppings assigned.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedToppingIds.map(id => {
+                          const topping = allToppings.find(t => t.toppingId === id);
+                          if (!topping) return null;
+                          return (
+                            <Badge key={id} variant="secondary" className="flex items-center gap-1 text-sm py-1 px-3">
+                              {topping.toppingName}
+                              {!isFormDisabled && (
+                                <X className="h-3 w-3 cursor-pointer hover:text-destructive ml-1" onClick={() => setSelectedToppingIds(prev => prev.filter(tid => tid !== id))} />
+                              )}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Images</CardTitle>
+                    <CardDescription>Upload base product images</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>POS Image (Single)</Label>
+                      <ImageUploader disabled={isFormDisabled} multiple={false} value={basePosImage} onChange={(val) => canEdit && setBasePosImage(val as File | string | null)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Ecommerce Images (Multiple)</Label>
+                      <ImageUploader disabled={isFormDisabled} multiple={true} value={baseEcomImages} onChange={(val) => canEdit && setBaseEcomImages(val as (File|string)[])} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {branchConfigs.map(branchConf => (
+            <TabsContent key={branchConf.branchId} value={`branch-${branchConf.branchId}`} className="mt-0">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex justify-between items-center">
+                        Branch Settings
+                        <div className="flex items-center gap-2">
+                          <Label className="text-sm font-normal">Active</Label>
+                          <Switch disabled={isFormDisabled} checked={branchConf.isActive} onCheckedChange={(val) => updateBranchConfig(branchConf.branchId, { isActive: val })} />
+                        </div>
+                      </CardTitle>
+                      <CardDescription>Visibility and overrides for this branch</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                        <Label>Override POS Image (Single)</Label>
+                        <ImageUploader disabled={isFormDisabled} multiple={false} value={branchConf.overridePosImage} onChange={(val) => canEdit && updateBranchConfig(branchConf.branchId, { overridePosImage: val as File | string | null })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Override Ecommerce Images (Multiple)</Label>
+                        <ImageUploader disabled={isFormDisabled} multiple={true} value={branchConf.overrideEcomImages} onChange={(val) => canEdit && updateBranchConfig(branchConf.branchId, { overrideEcomImages: val as (File|string)[] })} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader className="flex flex-row justify-between items-center pb-2">
+                      <div>
+                        <CardTitle>Branch Variants</CardTitle>
+                        <CardDescription>Configure sizes and prices</CardDescription>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={() => addVariant(branchConf.branchId)} disabled={isFormDisabled}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Variant
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {branchConf.variants.length > 0 ? (
+                        <Tabs 
+                          value={activeVariantTabs[branchConf.branchId]} 
+                          onValueChange={(val) => setActiveVariantTabs(prev => ({ ...prev, [branchConf.branchId]: val }))}
+                          className="w-full"
+                        >
+                          <TabsList className="w-full flex justify-start bg-muted/20 overflow-x-auto">
+                            {branchConf.variants.map((v, idx) => (
+                              <TabsTrigger key={v.id} value={v.id} className="min-w-[80px]">
+                                {v.variantName || `Variant ${idx + 1}`}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                          
+                          {branchConf.variants.map((v) => (
+                            <TabsContent key={v.id} value={v.id} className="pt-4 space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Size / Variant Name</Label>
+                                  <Input disabled={isFormDisabled} value={v.variantName} onChange={(e) => updateVariant(branchConf.branchId, v.id, { variantName: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Price</Label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                                    <Input disabled={isFormDisabled} type="number" step="0.01" className="pl-7" value={v.price} onChange={(e) => updateVariant(branchConf.branchId, v.id, { price: parseFloat(e.target.value) || 0 })} />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between border-t pt-4">
+                                <div className="flex items-center gap-2">
+                                  <Switch disabled={isFormDisabled} checked={v.isAvailable} onCheckedChange={(val) => updateVariant(branchConf.branchId, v.id, { isAvailable: val })} />
+                                  <Label>Available</Label>
+                                </div>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    const newVariants = branchConf.variants.filter(varnt => varnt.id !== v.id);
+                                    updateBranchConfig(branchConf.branchId, { variants: newVariants });
+                                    if (activeVariantTabs[branchConf.branchId] === v.id && newVariants.length > 0) {
+                                      setActiveVariantTabs(prev => ({ ...prev, [branchConf.branchId]: newVariants[0].id }));
+                                    }
+                                  }}
+                                  disabled={isFormDisabled || branchConf.variants.length === 1}
+                                >
+                                  Remove Variant
+                                </Button>
+                              </div>
+                            </TabsContent>
+                          ))}
+                        </Tabs>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No variants added.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        {isEditing && (
+          <div className="flex justify-end gap-4 border-t pt-6">
+            <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+            <Button type="submit" disabled={isSubmittingForm}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSubmittingForm ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        )}
       </form>
     </div>
   );

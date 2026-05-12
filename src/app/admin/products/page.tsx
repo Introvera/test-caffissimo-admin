@@ -55,10 +55,12 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppSelector } from "@/stores/store";
-import { useGetProductsQuery, useGetCategoriesQuery } from "@/stores/api/productApi";
-import { canManageProducts } from "@/lib/rbac";
+import { useGetProductsQuery, useGetCategoriesQuery, useUpdateProductMutation } from "@/stores/api/productApi";
+import { useGetBranchProductsQuery } from "@/stores/api/branchProductApi";
+import { canManageProducts, isSuperAdmin } from "@/lib/rbac";
 import { formatCurrency } from "@/lib/utils";
 import { Product, UserRole } from "@/types";
+import { toast } from "sonner";
 
 const columnHelper = createColumnHelper<Product>();
 
@@ -73,6 +75,8 @@ function SortIcon({ header }: { header: Header<Product, unknown> }) {
 
 export default function ProductsPage() {
   const currentRole = useAppSelector((state) => state.auth.user?.role);
+  const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId);
+  const [updateProduct] = useUpdateProductMutation();
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -85,118 +89,152 @@ export default function ProductsPage() {
   const { data: categoriesData } = useGetCategoriesQuery();
   const categories = categoriesData?.items || [];
 
-  const { data: productsData, isLoading: productsLoading } = useGetProductsQuery({
+  const isSuper = isSuperAdmin(currentRole as UserRole);
+
+  const { data: globalProductsData, isLoading: globalProductsLoading } = useGetProductsQuery({
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     search: globalFilter || undefined,
     productCategoryId: categoryFilter === "all" ? undefined : categoryFilter,
+  }, {
+    skip: !isSuper
   });
 
-  const products = productsData?.items || [];
+  const { data: branchProductsData, isLoading: branchProductsLoading } = useGetBranchProductsQuery({
+    page: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    search: globalFilter || undefined,
+    branchId: assignedBranchId || undefined,
+  }, {
+    skip: isSuper
+  });
+
+  const productsLoading = isSuper ? globalProductsLoading : branchProductsLoading;
+  const productsData = isSuper ? globalProductsData : branchProductsData;
+  const products = (productsData?.items as unknown as Product[]) || [];
   const totalCount = productsData?.totalCount || 0;
 
+  const handleToggleVisibility = async (productId: string, currentVisibility: boolean) => {
+    try {
+      await updateProduct({
+        id: productId,
+        data: { isVisible: !currentVisibility }
+      }).unwrap();
+      toast.success(`Product ${!currentVisibility ? "visible" : "hidden"} successfully`);
+    } catch (error) {
+      toast.error("Failed to update product visibility");
+    }
+  };
+
   const columns = useMemo(
-    () => [
-      columnHelper.accessor("productName", {
-        header: "Product",
-        cell: (info) => (
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
-              {info.row.original.posImage ? (
-                <img 
-                  src={info.row.original.posImage} 
-                  alt={info.getValue()} 
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Package className="h-5 w-5 text-muted-foreground" />
-              )}
+    () => {
+      const baseColumns = [
+        columnHelper.accessor("productName", {
+          header: "Product",
+          cell: (info) => (
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
+                {info.row.original.posImage ? (
+                  <img 
+                    src={info.row.original.posImage} 
+                    alt={info.getValue()} 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <Link
+                  href={`/admin/products/${info.row.original.productId}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {info.getValue()}
+                </Link>
+                <p className="text-xs text-muted-foreground line-clamp-1">
+                  {info.row.original.productDescription || ""}
+                </p>
+              </div>
             </div>
-            <div>
-              <Link
-                href={`/admin/products/${info.row.original.productId}`}
-                className="font-medium text-foreground hover:underline"
-              >
-                {info.getValue()}
-              </Link>
-              <p className="text-xs text-muted-foreground line-clamp-1">
-                {info.row.original.productDescription || ""}
-              </p>
-            </div>
-          </div>
-        ),
-      }),
-      columnHelper.accessor("productCategoryName", {
-        header: "Category",
-        cell: (info) => <Badge variant="secondary">{info.getValue() || "No Category"}</Badge>,
-      }),
-      columnHelper.accessor("productPrice", {
-        header: "Price",
-        cell: (info) => (
-          <span className="font-medium text-foreground">
-            {formatCurrency(info.getValue() || 0)}
-          </span>
-        ),
-      }),
-      columnHelper.accessor("isActive", {
-        header: "Status",
-        cell: (info) => (
-          <Badge variant={info.getValue() ? "success" : "secondary"}>
-            {info.getValue() ? "Active" : "Archived"}
-          </Badge>
-        ),
-      }),
-      columnHelper.accessor("isVisible", {
-        header: "Visible",
-        cell: (info) => (
-          <Switch
-            checked={info.getValue()}
-            disabled={!canManageProducts(currentRole as UserRole)}
-          />
-        ),
-      }),
-      columnHelper.display({
-        id: "actions",
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/admin/products/${row.productId}`}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Product
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Update Price
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  {row.isVisible ? (
-                    <>
-                      <EyeOff className="h-4 w-4 mr-2" />
-                      Hide Product
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Show Product
-                    </>
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        },
-      }),
-    ],
-    [currentRole]
+          ),
+        }),
+        columnHelper.accessor("productCategoryName", {
+          header: "Category",
+          cell: (info) => <Badge variant="secondary">{info.getValue() || "No Category"}</Badge>,
+        }),
+      ];
+
+      // Only show Price to Super Admins
+      if (isSuperAdmin(currentRole as UserRole)) {
+        baseColumns.push(
+          columnHelper.accessor("productPrice", {
+            header: "Price",
+            cell: (info) => (
+              <span className="font-medium text-foreground">
+                {formatCurrency(info.getValue() || 0)}
+              </span>
+            ),
+          })
+        );
+      }
+
+      // Status column is common, but data source is based on the fetched data (Product vs BranchProduct)
+      baseColumns.push(
+        columnHelper.accessor("isActive", {
+          header: "Status",
+          cell: (info) => (
+            <Badge variant={info.getValue() ? "success" : "secondary"}>
+              {info.getValue() ? "Active" : "Archived"}
+            </Badge>
+          ),
+        })
+      );
+
+      // Only show Visibility toggle to Super Admins
+      if (isSuperAdmin(currentRole as UserRole)) {
+        baseColumns.push(
+          columnHelper.accessor("isVisible", {
+            header: "Visible",
+            cell: (info) => (
+              <Switch
+                checked={info.getValue()}
+                onCheckedChange={() => handleToggleVisibility(info.row.original.productId, info.getValue())}
+                disabled={!canManageProducts(currentRole as UserRole)}
+              />
+            ),
+          })
+        );
+      }
+
+      baseColumns.push(
+        columnHelper.display({
+          id: "actions",
+          cell: (info) => {
+            const row = info.row.original;
+            return (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/admin/products/${row.productId}`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Product
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          },
+        })
+      );
+
+      return baseColumns;
+    },
+    [currentRole, updateProduct]
   );
 
   const table = useReactTable({
