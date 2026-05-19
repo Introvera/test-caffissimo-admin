@@ -255,12 +255,19 @@ export default function ProductsPage() {
         description="Manage your product catalog and pricing"
         actions={
           canManageProducts(currentRole as UserRole) && (
-            <Link href="/admin/products/new">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/admin/products/categories">
+                <Button variant="outline">
+                  Manage Categories
+                </Button>
+              </Link>
+              <Link href="/admin/products/new">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </Link>
+            </div>
           )
         }
       />

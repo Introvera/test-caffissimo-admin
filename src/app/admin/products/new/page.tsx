@@ -42,6 +42,7 @@ const productSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   categoryId: z.string().min(1, "Please select a category"),
+  price: z.number().min(0, "Price must be greater than or equal to 0"),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -193,6 +194,7 @@ export default function NewProductPage() {
       name: "",
       description: "",
       categoryId: "",
+      price: 0,
     },
   });
 
@@ -243,20 +245,29 @@ export default function NewProductPage() {
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmittingForm(true);
     try {
-      // 1. Create Base Product
-      // Note: We might need to upload images to a storage service first and get URLs.
-      // Assuming for now the API handles multipart/form-data or we just pass null strings for dummy.
-      // In a real app, upload basePosImage and baseEcomImages, then pass URLs.
+      // Map branchConfigs to the backend structure
+      const branchConfigsPayload = branchConfigs.map((bc) => ({
+        branchId: bc.branchId,
+        isAvailable: bc.isActive,
+        overridePosImage: bc.overridePosImage ? [bc.overridePosImage.name] : [],
+        overrideEcomImages: bc.overrideEcomImages.map((f) => f.name),
+        variants: bc.variants.map((v) => ({
+          sizeName: v.variantName,
+          price: Number(v.price),
+          isAvailable: v.isAvailable,
+        })),
+      }));
+
+      // 1. Create Product with Branch Configurations and Variants atomically
       const newProduct = await createProduct({
         productName: data.name,
         productDescription: data.description,
         productCategoryId: data.categoryId,
-        productPrice: 0, // Base price could be 0, or derived from variants
+        productPrice: Number(data.price),
         isVisible: true,
         isActive: true,
-        // posImage: basePosImageUrl,
-        // ecomImages: baseEcomImagesUrls.join(','),
-      }).unwrap();
+        branchConfigs: branchConfigsPayload,
+      } as any).unwrap();
 
       const productId = newProduct.productId;
 
@@ -270,26 +281,6 @@ export default function NewProductPage() {
           }).unwrap()
         );
         await Promise.all(toppingPromises);
-      }
-
-      // 2. Create Branch Products
-      if (branchConfigs.length > 0) {
-        const promises = branchConfigs.map(branchConf => {
-          return createBranchProduct({
-            branchId: branchConf.branchId,
-            productId: productId,
-            isAvailable: branchConf.isActive,
-            // overridePosImage: branchConf.overridePosImage ? [branchConf.overridePosImage.name] : [],
-            // overrideEcomImages: branchConf.overrideEcomImages.map(f => f.name),
-            variants: branchConf.variants.map(v => ({
-              variantName: v.variantName,
-              price: Number(v.price),
-              isAvailable: v.isAvailable
-            }))
-          }).unwrap();
-        });
-
-        await Promise.all(promises);
       }
 
       toast.success("Product created successfully");
@@ -418,6 +409,24 @@ export default function NewProductPage() {
                       <p className="text-sm text-destructive">
                         {errors.categoryId.message as string}
                       </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Base Price</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        className="pl-7"
+                        placeholder="e.g. 4.50"
+                        {...register("price", { valueAsNumber: true })}
+                      />
+                    </div>
+                    {errors.price && (
+                      <p className="text-sm text-destructive">{errors.price.message as string}</p>
                     )}
                   </div>
                 </CardContent>
