@@ -67,7 +67,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useAppSelector } from "@/stores/store";
 import { canManageUsers, canAccessAllBranches } from "@/lib/rbac";
-import { users, branches } from "@/data/seed";
+
 import { getInitials, formatDate } from "@/lib/utils";
 import { User, UserRole } from "@/types";
 import {
@@ -76,6 +76,7 @@ import {
   useResetUserPasswordMutation,
   useDeleteUserMutation,
 } from "@/stores/api/userApi";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
 import { toast } from "sonner";
 
 const roleLabels: Record<UserRole, string> = {
@@ -118,6 +119,10 @@ export default function UsersPage() {
   const [updateUserRole] = useUpdateUserRoleMutation();
   const [resetUserPassword] = useResetUserPasswordMutation();
   const [deleteUser] = useDeleteUserMutation();
+  
+  const { data: branchesData } = useGetBranchesQuery({ pageSize: 100 });
+  const branches = branchesData?.items || [];
+  const users: User[] = [];
 
   const canManage = canManageUsers(currentRole);
   const effectiveBranchId = selectedBranchId || assignedBranchId;

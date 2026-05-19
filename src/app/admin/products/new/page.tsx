@@ -466,7 +466,7 @@ export default function NewProductPage() {
               </Card>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Images</CardTitle>
