@@ -320,28 +320,49 @@ export function Sidebar() {
     <div className="flex h-full flex-col">
       <div
         className={cn(
-          "flex h-20 items-center border-b px-4",
+          "flex h-20 items-center justify-between px-4",
           collapsed && "justify-center px-2"
         )}
       >
-        <Link href="/admin/dashboard" className="flex items-center overflow-hidden">
-          <div className="relative flex h-14 min-w-[100px] shrink-0 items-center justify-start">
-            {logoError ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Coffee className="h-6 w-6 text-primary-foreground" />
+        {!collapsed ? (
+          <>
+            <Link href="/admin/dashboard" className="flex items-center overflow-hidden">
+              <div className="relative flex h-14 min-w-[100px] shrink-0 items-center justify-start">
+                {logoError ? (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                    <Coffee className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                ) : (
+                  <div className="flex h-14 items-center rounded-lg bg-zinc-900 px-2 dark:bg-transparent dark:px-0">
+                    <img
+                      src="/logo.jpg"
+                      alt="Caffissimo"
+                      className="h-12 w-auto max-w-[160px] object-contain object-left"
+                      onError={() => setLogoError(true)}
+                    />
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex h-14 items-center rounded-lg bg-zinc-900 px-2 dark:bg-transparent dark:px-0">
-                <img
-                  src="/logo.jpg"
-                  alt="Caffissimo"
-                  className="h-12 w-auto max-w-[220px] object-contain object-left opacity-95 dark:mix-blend-lighten"
-                  onError={() => setLogoError(true)}
-                />
-              </div>
-            )}
-          </div>
-        </Link>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={() => dispatch(setSidebarCollapsed(true))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            onClick={() => dispatch(setSidebarCollapsed(false))}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       <ScrollArea className="flex-1 px-3 py-4">
@@ -366,26 +387,6 @@ export function Sidebar() {
           })}
         </nav>
       </ScrollArea>
-
-      <Separator />
-
-      <div className={cn("p-3", collapsed && "flex justify-center")}>
-        <Button
-          variant="ghost"
-          size={collapsed ? "icon" : "sm"}
-          className="w-full justify-center"
-          onClick={() => dispatch(setSidebarCollapsed(!sidebarCollapsed))}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Collapse
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   );
 
