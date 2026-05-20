@@ -144,7 +144,7 @@ export function UberMenusTab({ branchId, canEdit }: UberMenusTabProps) {
                 <TableRow key={menu.uberMenuId}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{menu.title}</p>
+                      <p className="font-medium">{menu.menuName || (menu as any).title || "Untitled Menu"}</p>
                       <p className="text-xs text-muted-foreground">ID: {menu.uberMenuId.slice(0, 8)}</p>
                     </div>
                   </TableCell>

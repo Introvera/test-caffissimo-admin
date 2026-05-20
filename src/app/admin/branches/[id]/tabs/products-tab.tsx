@@ -10,6 +10,8 @@ import {
   XCircle,
   MoreVertical,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Card,
@@ -99,12 +101,6 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
         id: productId,
         data: {
           isAvailable: !currentStatus,
-          imageOverrideUrl: product.imageOverrideUrl,
-          variants: product.variants?.map((v) => ({
-            branchProductVariantId: v.branchProductVariantId,
-            isAvailable: v.isAvailable,
-            priceOverride: v.priceOverride,
-          })) || [],
         },
       }).unwrap();
       toast.success(`Product ${!currentStatus ? "enabled" : "disabled"}`);
@@ -135,9 +131,9 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
         branchId,
         productId: selectedProductId,
         isAvailable: true,
-        variants: globalProduct.variants?.map(v => ({
-          productVariantId: v.productVariantId || "",
-          priceOverride: v.productPrice || v.price || 0,
+        variants: globalProduct.variants?.map((v: any) => ({
+          sizeName: v.sizeName || v.variantName || "Standard",
+          price: v.productPrice || v.price || 0,
           isAvailable: true,
         })) || [],
       }).unwrap();
@@ -267,8 +263,8 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
                     <TableCell className="align-top py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                          {product.imageOverrideUrl ? (
-                            <img src={product.imageOverrideUrl} alt={product.productName} className="object-cover h-full w-full" />
+                          {product.overridePosImage?.[0] || product.posImage?.[0] ? (
+                            <img src={product.overridePosImage?.[0] || product.posImage?.[0]} alt={product.productName} className="object-cover h-full w-full" />
                           ) : (
                             <Package className="h-5 w-5 text-muted-foreground" />
                           )}
@@ -283,8 +279,8 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
                       <div className="space-y-1.5">
                         {product.variants?.map((variant) => (
                           <div key={variant.branchProductVariantId} className="flex items-center gap-2 text-sm">
-                            <span className="text-muted-foreground">{variant.sizeName || "Standard"}:</span>
-                            <span className="font-medium">{formatCurrency(variant.priceOverride)}</span>
+                            <span className="text-muted-foreground">{variant.sizeName || variant.variantName || "Standard"}:</span>
+                            <span className="font-medium">{formatCurrency(variant.priceOverride ?? variant.price)}</span>
                             {!variant.isAvailable && (
                               <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 border-destructive text-destructive">
                                 Unavailable

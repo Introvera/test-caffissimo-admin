@@ -104,7 +104,7 @@ const navEntries: NavEntry[] = [
     permission: canAccessAdmin,
     children: [
       { title: "Branches", href: "/admin/branches", icon: Store },
-      { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer },
+      // { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer },
     ],
   },
   {

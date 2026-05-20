@@ -128,7 +128,7 @@ export default function ProductsPage() {
 
   const columns = useMemo(
     () => {
-      const baseColumns = [
+      const baseColumns: any[] = [
         columnHelper.accessor("productName", {
           header: "Product",
           cell: (info) => (

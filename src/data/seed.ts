@@ -1,5 +1,6 @@
 import {
   Branch,
+  BranchPurpose,
   Category,
   Product,
   BranchProduct,
@@ -23,6 +24,7 @@ import { subDays, format, addHours } from "date-fns";
 export const branches: Branch[] = [
   {
     branchId: "branch-1",
+    purpose: BranchPurpose.Operational,
     branchName: "Downtown Caffissimo",
     branchAddress: "123 Main Street, Downtown, CA 90001",
     branchPhoneNumber: "(555) 123-4567",
@@ -45,6 +47,7 @@ export const branches: Branch[] = [
   },
   {
     branchId: "branch-2",
+    purpose: BranchPurpose.Operational,
     branchName: "Westside Caffissimo",
     branchAddress: "456 Ocean Boulevard, Westside, CA 90002",
     branchPhoneNumber: "(555) 234-5678",
@@ -67,6 +70,7 @@ export const branches: Branch[] = [
   },
   {
     branchId: "branch-3",
+    purpose: BranchPurpose.Operational,
     branchName: "University Caffissimo",
     branchAddress: "789 College Ave, University District, CA 90003",
     branchPhoneNumber: "(555) 345-6789",

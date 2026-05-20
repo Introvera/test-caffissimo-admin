@@ -155,11 +155,11 @@ export default function UberMenusPage() {
                 </TableHeader>
                 <TableBody>
                   {menus
-                    .filter(m => (m.title || "").toLowerCase().includes(search.toLowerCase()))
+                    .filter(m => (m.menuName || (m as any).title || "").toLowerCase().includes(search.toLowerCase()))
                     .map((menu) => (
                     <TableRow key={menu.uberMenuId}>
                       <TableCell>
-                        <p className="font-medium">{menu.title || "Untitled Menu"}</p>
+                        <p className="font-medium">{menu.menuName || (menu as any).title || "Untitled Menu"}</p>
                         <p className="text-xs text-muted-foreground">ID: {(menu.uberMenuId || "").slice(0, 8)}</p>
                       </TableCell>
                       <TableCell>

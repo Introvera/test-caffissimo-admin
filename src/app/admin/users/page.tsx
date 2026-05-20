@@ -408,13 +408,24 @@ export default function UsersPage() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {canAccessAllBranches(currentRole) && (
+                      {canAccessAllBranches(currentRole) ? (
                         <>
+                          <SelectItem value={UserRole.SuperAdmin}>Super Admin</SelectItem>
+                          <SelectItem value={UserRole.SuperAdminDeveloper}>Developer</SelectItem>
                           <SelectItem value={UserRole.BranchOwner}>Branch Owner</SelectItem>
+                          <SelectItem value={UserRole.BranchAdmin}>Branch Admin</SelectItem>
                           <SelectItem value={UserRole.Supervisor}>Supervisor</SelectItem>
+                          <SelectItem value={UserRole.Cashier}>Cashier</SelectItem>
+                          <SelectItem value={UserRole.Employee}>Employee</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value={UserRole.BranchAdmin}>Branch Admin</SelectItem>
+                          <SelectItem value={UserRole.Supervisor}>Supervisor</SelectItem>
+                          <SelectItem value={UserRole.Cashier}>Cashier</SelectItem>
+                          <SelectItem value={UserRole.Employee}>Employee</SelectItem>
                         </>
                       )}
-                      <SelectItem value={UserRole.Cashier}>Cashier</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

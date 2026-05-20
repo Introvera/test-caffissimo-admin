@@ -57,11 +57,29 @@ export interface BranchOpeningHours {
   isActive: boolean;
 }
 
+export enum BranchPurpose {
+  Operational = 0,
+  ListedForSale = 1,
+}
+
+export interface BranchSaleListing {
+  branchSaleListingId: string;
+  branchId: string;
+  listingDescription: string;
+  includedPackageDescription: string;
+  inquiryPhone?: string;
+  highlights: string[];
+}
+
 export interface Branch {
   branchId: string;
+  purpose: BranchPurpose;
   branchName: string;
   branchDescription?: string;
+  branchImageUrl?: string;
   branchAddress: string;
+  latitude?: number;
+  longitude?: number;
   branchPhoneNumber: string;
   branchPhoneNumberAlt?: string;
   branchEmail: string;
@@ -69,10 +87,12 @@ export interface Branch {
   isOpen: boolean;
   isActive: boolean;
   openingHours?: BranchOpeningHours[];
+  saleListing?: BranchSaleListing;
   uberEatsUrl?: string;
   doorDashUrl?: string;
   uberEatsApiKey?: string;
   doorDashApiKey?: string;
+  platformConnections?: PlatformConnectionSummary[];
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +115,7 @@ export interface Product {
   ecomImages?: string;
   isVisible: boolean;
   isActive: boolean;
+  variants?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -118,7 +139,13 @@ export type OrderStatus =
   | "preparing"
   | "ready"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "Pending"
+  | "Confirmed"
+  | "Preparing"
+  | "Ready"
+  | "Completed"
+  | "Cancelled";
 export type PaymentMethod = "cash" | "card" | "online" | "external";
 
 export interface OrderItemTopping {
@@ -372,7 +399,6 @@ export interface BranchForSale {
 }
 
 // ============== BACKEND-ALIGNED: ORDERS ==============
-export type OrderStatus = "Pending" | "Confirmed" | "Preparing" | "Ready" | "Completed" | "Cancelled";
 export type PaymentType = "Cash" | "Card" | "Online" | "External";
 export type OrderType = "DineIn" | "TakeAway" | "Delivery" | "Online";
 
@@ -557,7 +583,7 @@ export interface CreateOfferRequest {
   buyAmount?: number;
   getAmount?: number;
   branchIds: string[];
-  items: CreateOfferItemRequest[];
+  items: CreateOfferItemRequest[] | string[] | any[];
 }
 
 // ============== BACKEND-ALIGNED: BRANCH PRODUCTS ==============
@@ -565,7 +591,9 @@ export interface BranchProductVariantResponse {
   branchProductVariantId: string;
   branchProductId: string;
   variantName: string;
+  sizeName?: string;
   price: number;
+  priceOverride?: number;
   isAvailable: boolean;
 }
 
@@ -584,7 +612,8 @@ export interface BranchProductResponse {
 }
 
 export interface CreateBranchProductVariantInput {
-  variantName: string;
+  sizeName?: string;
+  variantName?: string;
   price: number;
   isAvailable: boolean;
 }
@@ -700,6 +729,7 @@ export interface UberMenuSyncResponse {
   syncStatus: SyncStatus;
   syncedAt: string;
   message: string;
+  success?: boolean;
 }
 
 export interface UberMenuAvailabilityRequest {
@@ -761,4 +791,31 @@ export interface UpdateUserRoleResponse {
 export interface ResetUserPasswordRequest {
   newPassword: string;
 }
+
+// ============== BACKEND-ALIGNED: PLATFORM CONNECTIONS ==============
+export enum PlatformEnvironment {
+  Sandbox = 0,
+  Production = 1
+}
+
+export interface PlatformConnectionSummary {
+  platformConnectionId: string;
+  platformCode: 0 | 1 | "UberEats" | "DoorDash";
+  platformName: string;
+  storeUrl?: string;
+  webhookConnectionKey?: string;
+  environment: PlatformEnvironment;
+  isActive: boolean;
+  isConfigured: boolean;
+  lastMenuSyncAt?: string;
+  lastSyncStatus?: SyncStatus;
+  
+  // Detailed client inputs if available/queried
+  externalStoreId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  webhookSecret?: string;
+  autoAcceptOrders?: boolean;
+}
+
 
