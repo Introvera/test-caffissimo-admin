@@ -5,28 +5,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
-  FileText,
-  ShoppingCart,
-  Package,
-  Tags,
-  Store,
-  Thermometer,
-  Users,
-  Clock,
+  LayoutGrid,
+  MapPin,
+  User,
+  Layers,
+  DollarSign,
+  Terminal,
   Settings,
-  FileSearch,
-  Coffee,
   ChevronLeft,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   ChevronDown,
   X,
-  Receipt,
-  BoxIcon,
-  Building2,
-  UserCog,
-  Wrench,
-  ExternalLink,
+  Package,
+  Coffee,
+  Tag,
+  ShoppingBag,
+  ShoppingCart,
+  BarChart3,
+  Clock,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -72,59 +71,53 @@ const navEntries: NavEntry[] = [
     type: "single",
     title: "Dashboard",
     href: "/admin/dashboard",
-    icon: LayoutDashboard,
+    icon: LayoutGrid,
     permission: canAccessAdmin,
   },
   {
-    type: "group",
-    title: "Sales",
-    icon: Receipt,
+    type: "single",
+    title: "Branches",
+    href: "/admin/branches",
+    icon: MapPin,
     permission: canAccessAdmin,
-    children: [
-      { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
-      { title: "Reports", href: "/admin/reports", icon: FileText },
-    ],
+  },
+  {
+    type: "single",
+    title: "Users",
+    href: "/admin/users",
+    icon: User,
+    permission: canAccessAdmin,
   },
   {
     type: "group",
     title: "Catalog",
-    icon: BoxIcon,
+    icon: Layers,
     permission: canAccessAdmin,
     children: [
       { title: "Products", href: "/admin/products", icon: Package },
       { title: "Toppings", href: "/admin/toppings", icon: Coffee },
-      { title: "Offers", href: "/admin/offers", icon: Tags },
-      { title: "Uber Menus", href: "/admin/uber-menus", icon: ExternalLink },
+      { title: "Offers", href: "/admin/offers", icon: Tag },
+      { title: "Uber Eats", href: "/admin/uber-menus", icon: ShoppingBag },
     ],
   },
   {
     type: "group",
-    title: "Operations",
-    icon: Building2,
+    title: "Sales",
+    icon: DollarSign,
     permission: canAccessAdmin,
     children: [
-      { title: "Branches", href: "/admin/branches", icon: Store },
-      // { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer },
+      { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
+      { title: "Sales Reports", href: "/admin/reports", icon: BarChart3 },
     ],
   },
   {
     type: "group",
-    title: "People",
-    icon: UserCog,
+    title: "System Logs",
+    icon: Terminal,
     permission: canAccessAdmin,
     children: [
-      { title: "Users", href: "/admin/users", icon: Users },
-      { title: "POS Login Report", href: "/admin/attendance", icon: Clock },
-    ],
-  },
-  {
-    type: "group",
-    title: "System",
-    icon: Wrench,
-    permission: canAccessAdmin,
-    children: [
-      { title: "Audit Logs", href: "/admin/audit-logs", icon: FileSearch },
-      { title: "Settings", href: "/admin/settings", icon: Settings },
+      { title: "POS Login Logs", href: "/admin/attendance", icon: Clock },
+      { title: "Audit Logs", href: "/admin/audit-logs", icon: FileText },
     ],
   },
 ];
@@ -134,6 +127,12 @@ export function Sidebar() {
   const dispatch = useAppDispatch();
   const { sidebarCollapsed, mobileMenuOpen } = useAppSelector((state) => state.ui);
   const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+
+  const settingsEntry = {
+    title: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
+  };
 
   // Track which groups are open — auto-open the group containing the active route
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -164,6 +163,7 @@ export function Sidebar() {
     group.children.some((c) => isChildActive(c));
 
   // Single nav link (Dashboard)
+  // Single nav link (Dashboard or nested group child)
   const NavLink = ({
     item,
     collapsed,
@@ -183,13 +183,14 @@ export function Sidebar() {
         className={cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent",
           active
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            ? indent
+              ? "bg-primary/10 text-primary hover:bg-primary/15 font-semibold"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
             : "text-muted-foreground hover:text-foreground",
-          collapsed && "justify-center px-2",
-          indent && !collapsed && "pl-9"
+          collapsed && "justify-center px-2 py-2.5"
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
+        {!indent && <Icon className="h-5 w-5 shrink-0" />}
         {!collapsed && <span>{item.title}</span>}
       </Link>
     );
@@ -228,13 +229,13 @@ export function Sidebar() {
           <TooltipTrigger asChild>
             <button
               className={cn(
-                "flex w-full items-center justify-center rounded-lg px-2 py-2 text-sm font-medium transition-all hover:bg-accent",
+                "flex w-full items-center justify-center rounded-lg px-2 py-2.5 text-sm font-medium transition-all hover:bg-accent",
                 active
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-5 w-5 shrink-0" />
             </button>
           </TooltipTrigger>
           <TooltipContent
@@ -279,7 +280,7 @@ export function Sidebar() {
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <Icon className="h-4 w-4 shrink-0" />
+          <Icon className="h-5 w-5 shrink-0" />
           <span className="flex-1 text-left">{group.title}</span>
           <ChevronDown
             className={cn(
@@ -297,7 +298,7 @@ export function Sidebar() {
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="mt-1 flex flex-col gap-0.5">
+              <div className="mt-1.5 flex flex-col gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-[20px] pl-2">
                 {group.children.map((child) => (
                   <NavLink
                     key={child.href}
@@ -320,8 +321,8 @@ export function Sidebar() {
     <div className="flex h-full flex-col">
       <div
         className={cn(
-          "flex h-20 items-center justify-between px-4",
-          collapsed && "justify-center px-2"
+          "flex h-20 items-center justify-between pl-4 pr-0",
+          collapsed && "justify-center pl-2 pr-0"
         )}
       >
         {!collapsed ? (
@@ -349,24 +350,26 @@ export function Sidebar() {
               size="icon"
               className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
               onClick={() => dispatch(setSidebarCollapsed(true))}
+              title="Collapse Sidebar"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <PanelLeftClose className="h-5 w-5" />
             </Button>
           </>
         ) : (
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground animate-fadeIn"
             onClick={() => dispatch(setSidebarCollapsed(false))}
+            title="Expand Sidebar"
           >
-            <ChevronRight className="h-5 w-5" />
+            <PanelLeftOpen className="h-5 w-5" />
           </Button>
         )}
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="flex flex-col gap-1">
+      <ScrollArea className={cn("flex-1 py-4", collapsed ? "pl-3 pr-0" : "px-3")}>
+        <nav className={cn("flex flex-col", collapsed ? "gap-2.5" : "gap-2")}>
           {filteredEntries.map((entry) => {
             if (entry.type === "single") {
               return (
@@ -387,6 +390,15 @@ export function Sidebar() {
           })}
         </nav>
       </ScrollArea>
+
+      {canAccessAdmin(currentRole) && (
+        <div className={cn("py-4 mt-auto", collapsed ? "pl-3 pr-0" : "px-3")}>
+          <NavLink
+            item={settingsEntry}
+            collapsed={collapsed}
+          />
+        </div>
+      )}
     </div>
   );
 
