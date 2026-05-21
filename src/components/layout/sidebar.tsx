@@ -26,6 +26,8 @@ import {
   BarChart3,
   Clock,
   FileText,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -118,6 +120,16 @@ const navEntries: NavEntry[] = [
     children: [
       { title: "POS Login Logs", href: "/admin/attendance", icon: Clock },
       { title: "Audit Logs", href: "/admin/audit-logs", icon: FileText },
+    ],
+  },
+  {
+    type: "group",
+    title: "Academy",
+    icon: GraduationCap,
+    permission: canAccessAdmin,
+    children: [
+      { title: "Modules", href: "/admin/academy/modules", icon: BookOpen },
+      { title: "Progress", href: "/admin/academy/progress", icon: BarChart3 },
     ],
   },
 ];

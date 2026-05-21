@@ -818,4 +818,121 @@ export interface PlatformConnectionSummary {
   autoAcceptOrders?: boolean;
 }
 
+// ============== TRAINING / ACADEMY ==============
+
+export type TrainingQualificationStatus = "NotStarted" | "InProgress" | "Passed";
+
+export interface TrainingQuizOptionResponse {
+  trainingQuizOptionId: string;
+  optionText: string;
+}
+
+export interface TrainingQuizQuestionResponse {
+  trainingQuizQuestionId: string;
+  questionText: string;
+  sortOrder: number;
+  isActive: boolean;
+  options: TrainingQuizOptionResponse[];
+}
+
+export interface TrainingVideoResponse {
+  trainingVideoId: string;
+  trainingModuleId: string;
+  title: string;
+  videoUrl: string;
+  sortOrder: number;
+  isRequired: boolean;
+  isActive: boolean;
+}
+
+export interface TrainingModuleSummaryResponse {
+  trainingModuleId: string;
+  title: string;
+  description?: string;
+  videoCount: number;
+  questionCount: number;
+  isActive: boolean;
+  branchId?: string;
+}
+
+export interface TrainingModuleDetailResponse {
+  trainingModuleId: string;
+  branchId?: string;
+  title: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  videos: TrainingVideoResponse[];
+  questions: TrainingQuizQuestionResponse[];
+}
+
+export interface EmployeeTrainingStatusResponse {
+  employeeId: string;
+  trainingModuleId: string;
+  trainingModuleTitle: string;
+  status: TrainingQualificationStatus;
+  passedAt?: string;
+  passedAttemptId?: string;
+  updatedAt: string;
+}
+
+// Request types
+export interface CreateTrainingModuleRequest {
+  title: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface UpdateTrainingModuleRequest {
+  title: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface CreateTrainingVideoRequest {
+  title: string;
+  videoUrl: string;
+  sortOrder: number;
+  isRequired: boolean;
+  isActive: boolean;
+}
+
+export interface CreateTrainingQuestionOptionRequest {
+  optionText: string;
+  isCorrect: boolean;
+}
+
+export interface CreateTrainingQuestionRequest {
+  questionText: string;
+  sortOrder: number;
+  isActive: boolean;
+  options: CreateTrainingQuestionOptionRequest[];
+}
+
+export interface SubmitTrainingAttemptAnswerRequest {
+  questionId: string;
+  selectedOptionId: string;
+}
+
+export interface SubmitTrainingAttemptRequest {
+  startedAt?: string;
+  answers: SubmitTrainingAttemptAnswerRequest[];
+}
+
+export interface TrainingAttemptQuestionResultResponse {
+  questionId: string;
+  selectedOptionId: string;
+  isCorrect: boolean;
+}
+
+export interface TrainingAttemptSubmitResponse {
+  attemptId: string;
+  isPassed: boolean;
+  correctCount: number;
+  totalQuestions: number;
+  qualifiedAt?: string;
+  questionResults: TrainingAttemptQuestionResultResponse[];
+}
+
 

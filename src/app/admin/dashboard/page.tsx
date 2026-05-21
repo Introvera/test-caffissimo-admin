@@ -56,8 +56,8 @@ export default function DashboardPage() {
     page: 1,
     pageSize: 10,
     branchId: selectedBranchId || undefined,
-    orderDateFrom: dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
-    orderDateTo: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
+    orderDateFrom: dateRange.from ? format(dateRange.from, "yyyy-MM-dd'T'00:00:00.000'Z'") : undefined,
+    orderDateTo: dateRange.to ? format(dateRange.to, "yyyy-MM-dd'T'23:59:59.999'Z'") : undefined,
     sortDescending: true,
   });
 

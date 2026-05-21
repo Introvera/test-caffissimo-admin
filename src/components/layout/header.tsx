@@ -29,7 +29,7 @@ import { useAppDispatch, useAppSelector } from "@/stores/store";
 import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen, setRole } from "@/stores/slices/uiSlice";
 import { logout, setUserRole } from "@/stores/slices/authSlice";
 import { canAccessAllBranches } from "@/lib/rbac";
-import { branches } from "@/data/seed";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
 import { format } from "date-fns";
 import { UserRole } from "@/types";
 import { cn } from "@/lib/utils";
@@ -72,6 +72,13 @@ export function Header() {
   const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
   const userName = useAppSelector((state) => state.auth.user?.name) || "User";
   const userEmail = useAppSelector((state) => state.auth.user?.email) || "user@caffissimo.com";
+
+  // Live branch list from API (only fetched when the user is a super admin)
+  const { data: branchesData } = useGetBranchesQuery(
+    { pageSize: 100 },
+    { skip: !canAccessAllBranches(currentRole) }
+  );
+  const branches = branchesData?.items ?? [];
 
   const handleAdminSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,7 +252,7 @@ export function Header() {
               </Badge>
               {assignedBranchId && (
                 <span className="text-xs text-muted-foreground">
-                  {branches.find((b) => b.branchId === assignedBranchId)?.branchName.replace("Caffissimo", "").trim()}
+                  {branches.find((b: any) => b.branchId === assignedBranchId)?.branchName.replace("Caffissimo", "").trim()}
                 </span>
               )}
             </DropdownMenuItem>
