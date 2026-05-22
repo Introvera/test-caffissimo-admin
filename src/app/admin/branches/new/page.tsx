@@ -60,6 +60,7 @@ export default function NewBranchPage() {
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
+  const [locationInputType, setLocationInputType] = useState<"Address" | "Coordinates">("Address");
   
   // Contacts
   const [phone, setPhone] = useState("");
@@ -347,48 +348,70 @@ export default function NewBranchPage() {
             </CardContent>
           </Card>
 
-          {/* Location & Coordinates */}
+          {/* Location */}
           <Card className="border border-border/60 shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <Globe className="h-5 w-5 text-primary" /> Location & Geocoding
+                <Globe className="h-5 w-5 text-primary" /> Location
               </CardTitle>
-              <CardDescription>Search address via Google Places to auto-extract exact coordinates</CardDescription>
+              <CardDescription>Specify the branch location by address or exact coordinates</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Address Search (Google Autocomplete)</Label>
-                <LocationInput
-                  value={address}
-                  onChange={setAddress}
-                  onSelect={handleLocationSelect}
-                  placeholder="Type location address..."
-                />
-              </div>
+              <div className="flex gap-3 items-end">
+                <div className="space-y-2 flex-shrink-0">
+                  <Label htmlFor="locationInputType">Location Type</Label>
+                  <Select
+                    value={locationInputType}
+                    onValueChange={(val) => setLocationInputType(val as "Address" | "Coordinates")}
+                  >
+                    <SelectTrigger id="locationInputType" className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Address">Address</SelectItem>
+                      <SelectItem value="Coordinates">Coordinates</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude">Latitude (Decimal)</Label>
-                  <Input
-                    id="latitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g. -31.9505"
-                    value={latitude !== undefined ? latitude : ""}
-                    onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : undefined)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="longitude">Longitude (Decimal)</Label>
-                  <Input
-                    id="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="e.g. 115.8605"
-                    value={longitude !== undefined ? longitude : ""}
-                    onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : undefined)}
-                  />
-                </div>
+                {locationInputType === "Address" && (
+                  <div className="space-y-2 flex-1">
+                    <Label>Address</Label>
+                    <LocationInput
+                      value={address}
+                      onChange={setAddress}
+                      onSelect={handleLocationSelect}
+                      placeholder="Type location address..."
+                    />
+                  </div>
+                )}
+
+                {locationInputType === "Coordinates" && (
+                  <div className="flex gap-3 flex-1">
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="latitude">Latitude</Label>
+                      <Input
+                        id="latitude"
+                        type="number"
+                        step="any"
+                        placeholder="e.g. -31.9505"
+                        value={latitude !== undefined ? latitude : ""}
+                        onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="longitude">Longitude</Label>
+                      <Input
+                        id="longitude"
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 115.8605"
+                        value={longitude !== undefined ? longitude : ""}
+                        onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : undefined)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -851,18 +874,16 @@ export default function NewBranchPage() {
           </Card>
 
           {/* Actions panel */}
-          <Card className="border border-border/60 shadow-sm">
-            <CardContent className="pt-6 flex gap-3">
-              <Link href="/admin/branches" className="flex-1">
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </Link>
-              <Button type="submit" disabled={isCreating} className="flex-1">
-                {isCreating ? "Creating..." : "Create"}
+          <div className="flex gap-3">
+            <Link href="/admin/branches" className="flex-1">
+              <Button type="button" variant="outline" className="w-full">
+                Cancel
               </Button>
-            </CardContent>
-          </Card>
+            </Link>
+            <Button type="submit" disabled={isCreating} className="flex-1">
+              {isCreating ? "Creating..." : "Create"}
+            </Button>
+          </div>
         </div>
       </form>
         </TabsContent>

@@ -79,7 +79,7 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
   });
 
   const { data: globalProducts, isLoading: productsLoading } = useGetProductsQuery({
-    pageSize: 10,
+    pageSize: 100,
   });
 
   const [updateBranchProduct, { isLoading: isUpdating }] = useUpdateBranchProductMutation();
@@ -126,16 +126,27 @@ export function ProductsTab({ branchId, canEdit }: ProductsTabProps) {
     const globalProduct = globalProducts?.items.find(p => p.productId === selectedProductId);
     if (!globalProduct) return;
 
+    const mappedVariants =
+      globalProduct.variants && globalProduct.variants.length > 0
+        ? globalProduct.variants.map((v: any) => ({
+            sizeName: v.sizeName || v.variantName || "Standard",
+            price: v.productPrice ?? v.price ?? globalProduct.productPrice ?? 0,
+            isAvailable: true,
+          }))
+        : [
+            {
+              sizeName: "Standard",
+              price: globalProduct.productPrice ?? 0,
+              isAvailable: true,
+            },
+          ];
+
     try {
       await createBranchProduct({
         branchId,
         productId: selectedProductId,
         isAvailable: true,
-        variants: globalProduct.variants?.map((v: any) => ({
-          sizeName: v.sizeName || v.variantName || "Standard",
-          price: v.productPrice || v.price || 0,
-          isAvailable: true,
-        })) || [],
+        variants: mappedVariants,
       }).unwrap();
       toast.success("Product added to branch");
       setAddDialogOpen(false);
