@@ -21,6 +21,32 @@ const initialState: AuthState = {
   error: null,
 };
 
+/** Maps Firebase Auth error codes to user-friendly messages. */
+function friendlyAuthError(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? (error as { code: string }).code
+      : "";
+
+  const map: Record<string, string> = {
+    "auth/invalid-credential":       "Incorrect email or password. Please try again.",
+    "auth/wrong-password":           "Incorrect password. Please try again.",
+    "auth/user-not-found":           "No account found with that email address.",
+    "auth/invalid-email":            "Please enter a valid email address.",
+    "auth/user-disabled":            "This account has been disabled. Contact support.",
+    "auth/too-many-requests":        "Too many failed attempts. Please wait a moment and try again.",
+    "auth/network-request-failed":   "Network error. Check your connection and try again.",
+    "auth/email-already-in-use":     "An account with this email already exists.",
+    "auth/weak-password":            "Password must be at least 6 characters.",
+    "auth/requires-recent-login":    "Please sign in again to continue.",
+    "auth/popup-closed-by-user":     "Sign-in was cancelled. Please try again.",
+    "auth/account-exists-with-different-credential":
+                                     "An account already exists with a different sign-in method.",
+  };
+
+  return map[code] ?? "Something went wrong. Please try again.";
+}
+
 export const loginWithFirebase = createAsyncThunk(
   "auth/loginWithFirebase",
   async ({ email, password }: { email: string; password: string }, { dispatch, rejectWithValue }) => {
@@ -32,14 +58,14 @@ export const loginWithFirebase = createAsyncThunk(
       const token = await userCredential.user.getIdToken();
       // 3. Temporarily save token so apiClient can use it
       Cookies.set("auth_token", token, { expires: 7 });
-      
+
       // 4. Fetch custom user profile from backend
       const user = await apiClient.get<User>("/api/FirebaseUser/current-user");
-      
+
       dispatch(setAuthSuccess({ user, token }));
       return user;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to login";
+      const msg = friendlyAuthError(error);
       dispatch(setAuthFailure(msg));
       Cookies.remove("auth_token");
       return rejectWithValue(msg);

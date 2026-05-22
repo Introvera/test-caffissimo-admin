@@ -282,40 +282,55 @@ export default function DashboardPage() {
               <CardTitle>Recent Orders</CardTitle>
               <CardDescription>Latest orders across all branches</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b px-2">
-                  <span>Order</span>
-                  <span>Type</span>
-                  <span>Status</span>
-                  <span className="text-right">Total</span>
-                </div>
-                {recentOrders.map((order) => (
-                  <Link
-                    key={order.orderId}
-                    href={`/admin/orders/${order.orderId}`}
-                    className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Clock className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{order.orderNumber || "No Number"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.orderDate ? format(parseISO(order.orderDate), "MMM d, h:mm a") : "Unknown Date"}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {order.orderType ? (TYPE_LABELS[order.orderType] ?? order.orderType) : "Unknown Type"}
-                    </span>
-                    <StatusBadge status={order.orderStatus} />
-                    <span className="text-sm font-medium tabular-nums text-right">
-                      {formatCurrency(order.grandTotal)}
-                    </span>
-                  </Link>
-                ))}
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Order</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Type</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-3">Status</th>
+                      <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-3">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {recentOrders.map((order) => (
+                      <tr
+                        key={order.orderId}
+                        className="hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="px-6 py-3">
+                          <Link href={`/admin/orders/${order.orderId}`} className="flex items-center gap-3">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                              <Clock className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{order.orderNumber || "No Number"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {order.orderDate ? format(parseISO(order.orderDate), "MMM d, h:mm a") : "Unknown Date"}
+                              </p>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/admin/orders/${order.orderId}`} className="text-xs text-muted-foreground whitespace-nowrap">
+                            {order.orderType ? (TYPE_LABELS[order.orderType] ?? order.orderType) : "Unknown Type"}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/admin/orders/${order.orderId}`}>
+                            <StatusBadge status={order.orderStatus} />
+                          </Link>
+                        </td>
+                        <td className="px-6 py-3 text-right">
+                          <Link href={`/admin/orders/${order.orderId}`} className="text-sm font-medium tabular-nums whitespace-nowrap">
+                            {formatCurrency(order.grandTotal)}
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>

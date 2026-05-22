@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
 import { LocationInput } from "@/components/ui/location-input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -76,7 +77,7 @@ export default function NewBranchPage() {
   const [uberWebhookSecret, setUberWebhookSecret] = useState("");
   const [uberWebhookConnectionKey, setUberWebhookConnectionKey] = useState("");
   const [uberEnvironment, setUberEnvironment] = useState<number>(0); // 0 = Sandbox, 1 = Production
-  const [uberAutoAccept, setUberAutoAccept] = useState(false);
+  const [uberAutoAccept] = useState(true);
   const [showUberAdvanced, setShowUberAdvanced] = useState(false);
   const [showUberApiKey, setShowUberApiKey] = useState(false);
 
@@ -88,7 +89,7 @@ export default function NewBranchPage() {
   const [ddWebhookSecret, setDdWebhookSecret] = useState("");
   const [ddWebhookConnectionKey, setDdWebhookConnectionKey] = useState("");
   const [ddEnvironment, setDdEnvironment] = useState<number>(0); // 0 = Sandbox, 1 = Production
-  const [ddAutoAccept, setDdAutoAccept] = useState(false);
+  const [ddAutoAccept] = useState(true);
   const [showDdAdvanced, setShowDdAdvanced] = useState(false);
   const [showDoorApiKey, setShowDoorApiKey] = useState(false);
 
@@ -250,6 +251,31 @@ export default function NewBranchPage() {
         />
       </div>
 
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="bg-transparent border-b border-border rounded-none h-auto p-0 gap-0 w-full justify-start">
+          <TabsTrigger
+            value="overview"
+            className="relative rounded-none bg-transparent border-0 shadow-none px-4 pb-3 pt-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent data-[state=active]:after:bg-primary"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="products"
+            disabled
+            className="relative rounded-none bg-transparent border-0 shadow-none px-4 pb-3 pt-2 text-sm font-medium text-muted-foreground/40 transition-colors cursor-not-allowed after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent"
+          >
+            Products
+          </TabsTrigger>
+          <TabsTrigger
+            value="uber-menus"
+            disabled
+            className="relative rounded-none bg-transparent border-0 shadow-none px-4 pb-3 pt-2 text-sm font-medium text-muted-foreground/40 transition-colors cursor-not-allowed after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent"
+          >
+            Uber Menus
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="m-0">
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
         {/* Left Column (2/3 width) */}
         <div className="lg:col-span-2 space-y-6">
@@ -615,16 +641,7 @@ export default function NewBranchPage() {
                           <option value={1}>Production (Live)</option>
                         </select>
                       </div>
-                      <div className="flex items-center justify-between md:col-span-2 border-t pt-3">
-                        <div>
-                          <Label className="text-xs font-semibold">Auto-Accept Orders</Label>
-                          <p className="text-[11px] text-muted-foreground">Automatically acknowledge incoming Uber Eats orders</p>
-                        </div>
-                        <Switch
-                          checked={uberAutoAccept}
-                          onCheckedChange={setUberAutoAccept}
-                        />
-                      </div>
+
                     </div>
                   )}
                 </div>
@@ -745,16 +762,7 @@ export default function NewBranchPage() {
                           <option value={1}>Production (Live)</option>
                         </select>
                       </div>
-                      <div className="flex items-center justify-between md:col-span-2 border-t pt-3">
-                        <div>
-                          <Label className="text-xs font-semibold">Auto-Accept Orders</Label>
-                          <p className="text-[11px] text-muted-foreground">Automatically acknowledge incoming DoorDash orders</p>
-                        </div>
-                        <Switch
-                          checked={ddAutoAccept}
-                          onCheckedChange={setDdAutoAccept}
-                        />
-                      </div>
+
                     </div>
                   )}
                 </div>
@@ -857,6 +865,8 @@ export default function NewBranchPage() {
           </Card>
         </div>
       </form>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

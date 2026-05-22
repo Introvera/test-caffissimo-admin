@@ -309,11 +309,11 @@ export default function NewProductPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center border-b pb-2 mb-4">
-            <TabsList className="bg-transparent h-auto p-0 justify-start">
+          <div className="flex items-center border-b border-border">
+            <TabsList className="bg-transparent h-auto p-0 gap-0 justify-start flex-1">
               <TabsTrigger 
                 value="base" 
-                className="data-[state=active]:bg-muted/50 rounded-none border-b-2 border-transparent data-[state=active]:border-primary pb-2"
+                className="relative rounded-none bg-transparent border-0 shadow-none px-4 pb-3 pt-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent data-[state=active]:after:bg-primary"
               >
                 Base
               </TabsTrigger>
@@ -323,7 +323,7 @@ export default function NewProductPage() {
                   <TabsTrigger 
                     key={config.branchId} 
                     value={`branch-${config.branchId}`}
-                    className="data-[state=active]:bg-muted/50 rounded-none border-b-2 border-transparent data-[state=active]:border-primary pb-2 flex items-center gap-2"
+                    className="relative rounded-none bg-transparent border-0 shadow-none px-4 pb-3 pt-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent data-[state=active]:after:bg-primary flex items-center gap-1.5"
                   >
                     {b?.branchName.replace("Caffissimo", "").trim() || "Branch"}
                     {isSuper && <X className="h-3 w-3 hover:text-destructive z-10" onClick={(e) => removeBranchConfig(config.branchId, e)} />}
@@ -335,7 +335,7 @@ export default function NewProductPage() {
             {isSuper && unconfiguredBranches.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="ml-2 h-8">
+                  <Button variant="ghost" size="sm" className="mb-1 h-8">
                     <Plus className="h-4 w-4 mr-2" />
                     Add a branch variant
                   </Button>
@@ -351,7 +351,7 @@ export default function NewProductPage() {
             )}
           </div>
 
-          <TabsContent value="base" className="mt-0">
+          <TabsContent value="base" className="mt-6">
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -506,7 +506,7 @@ export default function NewProductPage() {
           </TabsContent>
 
           {branchConfigs.map(branchConf => (
-            <TabsContent key={branchConf.branchId} value={`branch-${branchConf.branchId}`} className="mt-0">
+            <TabsContent key={branchConf.branchId} value={`branch-${branchConf.branchId}`} className="mt-6">
               <div className="grid gap-6 lg:grid-cols-2">
                 <div className="space-y-6">
                   <Card>
@@ -565,9 +565,9 @@ export default function NewProductPage() {
                           onValueChange={(val) => setActiveVariantTabs(prev => ({ ...prev, [branchConf.branchId]: val }))}
                           className="w-full"
                         >
-                          <TabsList className="w-full flex justify-start bg-muted/20 overflow-x-auto">
+                          <TabsList className="w-full flex justify-start bg-transparent border-b border-border rounded-none h-auto p-0 gap-0 overflow-x-auto">
                             {branchConf.variants.map((v, idx) => (
-                              <TabsTrigger key={v.id} value={v.id} className="min-w-[80px]">
+                              <TabsTrigger key={v.id} value={v.id} className="relative rounded-none bg-transparent border-0 shadow-none px-3 pb-2.5 pt-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:text-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-t-full after:bg-transparent data-[state=active]:after:bg-primary min-w-[70px]">
                                 {v.variantName || `Variant ${idx + 1}`}
                               </TabsTrigger>
                             ))}
