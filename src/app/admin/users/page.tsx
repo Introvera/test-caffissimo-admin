@@ -71,6 +71,7 @@ import { canManageUsers, canAccessAllBranches } from "@/lib/rbac";
 import { getInitials, formatDate } from "@/lib/utils";
 import { User, UserRole } from "@/types";
 import {
+  useGetUsersQuery,
   useCreateUserMutation,
   useUpdateUserRoleMutation,
   useResetUserPasswordMutation,
@@ -122,7 +123,20 @@ export default function UsersPage() {
   
   const { data: branchesData } = useGetBranchesQuery({ pageSize: 100 });
   const branches = branchesData?.items || [];
-  const users: User[] = [];
+  
+  const { data: usersData } = useGetUsersQuery({ page: 1, pageSize: 100 });
+  const users: User[] = useMemo(() => {
+    return (usersData?.items || []).map((u) => ({
+      id: u.id,
+      name: `${u.firstName} ${u.lastName}`.trim(),
+      email: u.email,
+      role: u.role,
+      branchId: u.branchId,
+      isActive: u.isActive,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+    }));
+  }, [usersData]);
 
   const canManage = canManageUsers(currentRole);
   const effectiveBranchId = selectedBranchId || assignedBranchId;
@@ -140,7 +154,7 @@ export default function UsersPage() {
         user.branchId === effectiveBranchId;
       return matchesSearch && matchesRole && matchesBranch;
     });
-  }, [globalFilter, roleFilter, currentRole, effectiveBranchId]);
+  }, [globalFilter, roleFilter, currentRole, effectiveBranchId, users]);
 
   const getBranchName = (branchId?: string) => {
     if (!branchId) return "All Branches";

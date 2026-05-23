@@ -6,10 +6,20 @@ import {
   UpdateUserRoleRequest,
   ResetUserPasswordRequest,
   UpdateUserRoleResponse,
+  PagedResult,
 } from "@/types";
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // GET /api/firebaseuser
+    getUsers: builder.query<PagedResult<AppUser>, { page?: number; pageSize?: number; search?: string; role?: string; branchId?: string; isActive?: boolean }>({
+      query: (params) => ({
+        url: "/api/firebaseuser",
+        params,
+      }),
+      providesTags: ["User"],
+    }),
+
     // GET /api/firebaseuser/current-user
     getCurrentUser: builder.query<AppUser, void>({
       query: () => "/api/firebaseuser/current-user",
@@ -67,6 +77,7 @@ export const userApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetUsersQuery,
   useGetCurrentUserQuery,
   useCreateUserMutation,
   useCreateCustomerUserMutation,
