@@ -320,7 +320,7 @@ export interface DateRange {
   to: Date;
 }
 
-export type DateRangePreset = "today" | "7d" | "30d" | "custom";
+export type DateRangePreset = "today" | "7d" | "30d" | "custom" | "24h" | "12m";
 
 export interface ReportFilters {
   dateRange: DateRange;

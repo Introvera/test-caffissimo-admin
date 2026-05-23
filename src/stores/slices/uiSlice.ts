@@ -17,12 +17,15 @@ const getDefaultDateRange = (preset: DateRangePreset): DateRange => {
   const today = new Date();
   switch (preset) {
     case "today":
+    case "24h":
       return { from: startOfDay(today), to: endOfDay(today) };
+    case "30d":
+      return { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
+    case "12m":
+      return { from: startOfDay(subDays(today, 365)), to: endOfDay(today) };
     case "7d":
     default:
       return { from: startOfDay(subDays(today, 6)), to: endOfDay(today) };
-    case "30d":
-      return { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
   }
 };
 
