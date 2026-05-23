@@ -67,7 +67,12 @@ export default function NewToppingPage() {
 
   const onSubmit = async (data: ToppingFormData) => {
     try {
-      await createTopping(data).unwrap();
+      await createTopping({
+        toppingName: data.toppingName,
+        toppingCategoryId: data.toppingCategoryId,
+        toppingPrice: data.price,
+        isActive: data.isActive,
+      } as never).unwrap();
       router.push("/admin/toppings");
     } catch (err) {
       console.error("Failed to create topping:", err);

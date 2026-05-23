@@ -84,7 +84,12 @@ export default function ToppingDetailPage({ params }: ToppingDetailPageProps) {
     try {
       await updateTopping({
         id: resolvedParams.id,
-        data,
+        data: {
+          toppingName: data.toppingName,
+          toppingCategoryId: data.toppingCategoryId,
+          toppingPrice: data.price,
+          isActive: data.isActive,
+        } as never,
       }).unwrap();
       router.push("/admin/toppings");
     } catch (err) {

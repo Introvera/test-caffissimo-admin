@@ -28,12 +28,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Branch, UserRole, DayOfWeek } from "@/types";
 
 export default function BranchesPage() {
-  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const currentRole = useAppSelector((state) => state.auth.user?.role);
   const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
   
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const pageSize = 6;
+  const pageSize = 10;
 
   const { data, isLoading } = useGetBranchesQuery({
     page,

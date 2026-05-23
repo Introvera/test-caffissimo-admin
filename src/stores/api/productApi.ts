@@ -1,21 +1,15 @@
 import { baseApi } from "./baseApi";
-import { Product, Category, PagedResult, PaginationParams } from "@/types";
+import { Product, Category, BranchForSale, PagedResult, PaginationParams } from "@/types";
 
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // ─── Products ────────────────────────────────────────────────────────
     getProducts: builder.query<PagedResult<Product>, PaginationParams | void>({
       query: (params) => ({
         url: "/api/products",
         params: params || undefined,
       }),
       providesTags: ["Product"],
-    }),
-    getCategories: builder.query<PagedResult<Category>, PaginationParams | void>({
-      query: (params) => ({
-        url: "/api/product-categories",
-        params: params || undefined,
-      }),
-      providesTags: ["Category"],
     }),
     getProductById: builder.query<Product, string>({
       query: (id) => `/api/products/${id}`,
@@ -35,23 +29,63 @@ export const productApi = baseApi.injectEndpoints({
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Product"],
+      invalidatesTags: (result, error, { id }) => [{ type: "Product", id }, "Product"],
     }),
-    deleteProduct: builder.mutation<string, string>({
+    deleteProduct: builder.mutation<void, string>({
       query: (id) => ({
         url: `/api/products/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Product"],
     }),
+
+    // ─── Product Categories ───────────────────────────────────────────────
+    getCategories: builder.query<PagedResult<Category>, PaginationParams | void>({
+      query: (params) => ({
+        url: "/api/product-categories",
+        params: params || undefined,
+      }),
+      providesTags: ["Category"],
+    }),
+    getCategoryById: builder.query<Category, string>({
+      query: (id) => `/api/product-categories/${id}`,
+      providesTags: (result, error, id) => [{ type: "Category", id }],
+    }),
+    createCategory: builder.mutation<Category, Partial<Category>>({
+      query: (data) => ({
+        url: "/api/product-categories",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Category"],
+    }),
+    updateCategory: builder.mutation<Category, { id: string; data: Partial<Category> }>({
+      query: ({ id, data }) => ({
+        url: `/api/product-categories/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Category", id }, "Category"],
+    }),
+    deleteCategory: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/product-categories/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Category"],
+    }),
   }),
 });
 
 export const {
   useGetProductsQuery,
-  useGetCategoriesQuery,
   useGetProductByIdQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useGetCategoriesQuery,
+  useGetCategoryByIdQuery,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
 } = productApi;

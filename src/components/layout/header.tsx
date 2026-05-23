@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu, Search, Filter } from "lucide-react";
 import { ThemeToggleSimple } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +26,10 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DateRangeCalendar } from "@/components/ui/calendar";
 import { useAppDispatch, useAppSelector } from "@/stores/store";
-import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen } from "@/stores/slices/uiSlice";
-import { logout } from "@/stores/slices/authSlice";
+import { setSelectedBranchId, setDateRange, setDateRangePreset, setMobileMenuOpen, setRole } from "@/stores/slices/uiSlice";
+import { logout, setUserRole } from "@/stores/slices/authSlice";
 import { canAccessAllBranches } from "@/lib/rbac";
-import { branches } from "@/data/seed";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
 import { format } from "date-fns";
 import { UserRole } from "@/types";
 import { cn } from "@/lib/utils";
@@ -63,12 +63,22 @@ export function Header() {
     selectedBranchId,
     dateRange,
     dateRangePreset,
+    currentRole: uiRole,
   } = useAppSelector((state) => state.ui);
   
-  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const authRole = useAppSelector((state) => state.auth.user?.role);
+  const currentRole = uiRole || authRole || UserRole.Cashier;
+  
   const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
   const userName = useAppSelector((state) => state.auth.user?.name) || "User";
   const userEmail = useAppSelector((state) => state.auth.user?.email) || "user@caffissimo.com";
+
+  // Live branch list from API (only fetched when the user is a super admin)
+  const { data: branchesData } = useGetBranchesQuery(
+    { pageSize: 100 },
+    { skip: !canAccessAllBranches(currentRole) }
+  );
+  const branches = branchesData?.items ?? [];
 
   const handleAdminSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +94,12 @@ export function Header() {
     dispatch(setSelectedBranchId(branchId === "all" ? null : branchId));
   };
 
+  const handleRoleChange = (role: string) => {
+    const newRole = role as UserRole;
+    dispatch(setRole(newRole));
+    dispatch(setUserRole(newRole));
+  };
+
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 lg:px-6 lg:rounded-t-2xl">
       {/* Mobile Menu Button */}
@@ -96,48 +112,57 @@ export function Header() {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* Admin-wide search (hidden on mobile) */}
-      <form
-        onSubmit={handleAdminSearch}
-        className="hidden md:flex flex-1 max-w-sm"
-      >
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder="Search orders, products, users..."
-            className="pl-8 w-full h-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search admin"
-          />
-        </div>
-      </form>
+      {/* Left Side: Branch Selector */}
+      <div className="flex flex-1 items-center gap-2">
+        {/* Branch Selector (Super Admin only) */}
+        {canAccessAllBranches(currentRole) && (
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold tracking-tight text-foreground mr-1">Store :</h2>
+            <Select
+              value={selectedBranchId || "all"}
+              onValueChange={handleBranchChange}
+            >
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue placeholder="All Branches" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.branchId} value={branch.branchId}>
+                    {branch.branchName.replace("Caffissimo", "").trim()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+      <div className="flex items-center justify-end gap-2 md:gap-4">
         {/* Date Range Picker */}
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="flex h-9 rounded-md border overflow-hidden">
-            {(["today", "7d", "30d"] as const).map((preset) => (
+        <div className="hidden sm:flex items-center gap-4">
+          <div className="inline-flex h-9 items-center justify-center rounded-md bg-muted/30 p-1 text-muted-foreground">
+            {(["12m", "30d", "7d", "24h"] as const).map((preset) => (
               <button
                 key={preset}
                 type="button"
                 onClick={() => dispatch(setDateRangePreset(preset))}
                 className={cn(
-                  "h-9 px-3 text-xs font-medium transition-colors flex items-center justify-center",
+                  "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   dateRangePreset === preset
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "hover:bg-background/50 hover:text-foreground"
                 )}
               >
-                {preset === "today" ? "Today" : preset === "7d" ? "7 Days" : "30 Days"}
+                {preset === "12m" ? "12 months" : preset === "30d" ? "30 days" : preset === "7d" ? "7 days" : "24 hours"}
               </button>
             ))}
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 text-xs">
-                {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+              <Button variant="outline" size="sm" className="h-9 text-xs rounded-md text-foreground px-4 shadow-sm hover:bg-muted/50">
+                <Filter className="w-3.5 h-3.5 mr-2" />
+                {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
@@ -154,38 +179,29 @@ export function Header() {
           </Popover>
         </div>
 
-        {/* Branch Selector (Super Admin only) */}
-        {canAccessAllBranches(currentRole) && (
+        {/* Role Switcher (Temporary for development) 
+        <div className="hidden lg:flex items-center gap-2 border-r pr-2 mr-2">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground whitespace-nowrap">Role Switch:</span>
           <Select
-            value={selectedBranchId || "all"}
-            onValueChange={handleBranchChange}
+            value={currentRole}
+            onValueChange={handleRoleChange}
           >
-            <SelectTrigger className="w-[160px] h-9 hidden sm:flex">
-              <SelectValue placeholder="All Branches" />
+            <SelectTrigger className="w-[140px] h-8 text-xs bg-muted/50 border-none">
+              <SelectValue placeholder="Change Role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Branches</SelectItem>
-              {branches.map((branch) => (
-                <SelectItem key={branch.branchId} value={branch.branchId}>
-                  {branch.branchName.replace("Caffissimo", "").trim()}
+              {Object.values(UserRole).map((role) => (
+                <SelectItem key={role} value={role} className="text-xs">
+                  {roleLabels[role]}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-
-
+        </div>
+        */}
 
         {/* Theme Toggle */}
         <ThemeToggleSimple />
-
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-            3
-          </span>
-        </Button>
 
         {/* User Menu */}
         <DropdownMenu>
@@ -216,7 +232,7 @@ export function Header() {
               </Badge>
               {assignedBranchId && (
                 <span className="text-xs text-muted-foreground">
-                  {branches.find((b) => b.branchId === assignedBranchId)?.branchName.replace("Caffissimo", "").trim()}
+                  {branches.find((b: any) => b.branchId === assignedBranchId)?.branchName.replace("Caffissimo", "").trim()}
                 </span>
               )}
             </DropdownMenuItem>

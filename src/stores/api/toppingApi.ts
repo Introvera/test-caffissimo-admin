@@ -124,6 +124,13 @@ export const toppingApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["BranchTopping"],
     }),
+    deleteBranchTopping: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/branch-toppings/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["BranchTopping"],
+    }),
   }),
 });
 
@@ -144,4 +151,5 @@ export const {
   useGetBranchToppingsQuery,
   useCreateBranchToppingMutation,
   useUpdateBranchToppingMutation,
+  useDeleteBranchToppingMutation,
 } = toppingApi;

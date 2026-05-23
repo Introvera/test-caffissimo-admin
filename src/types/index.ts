@@ -57,11 +57,29 @@ export interface BranchOpeningHours {
   isActive: boolean;
 }
 
+export enum BranchPurpose {
+  Operational = 0,
+  ListedForSale = 1,
+}
+
+export interface BranchSaleListing {
+  branchSaleListingId: string;
+  branchId: string;
+  listingDescription: string;
+  includedPackageDescription: string;
+  inquiryPhone?: string;
+  highlights: string[];
+}
+
 export interface Branch {
   branchId: string;
+  purpose: BranchPurpose;
   branchName: string;
   branchDescription?: string;
+  branchImageUrl?: string;
   branchAddress: string;
+  latitude?: number;
+  longitude?: number;
   branchPhoneNumber: string;
   branchPhoneNumberAlt?: string;
   branchEmail: string;
@@ -69,6 +87,7 @@ export interface Branch {
   isOpen: boolean;
   isActive: boolean;
   openingHours?: BranchOpeningHours[];
+  saleListing?: BranchSaleListing;
   uberEatsUrl?: string;
   doorDashUrl?: string;
   uberEatsApiKey?: string;
@@ -111,6 +130,7 @@ export interface Product {
   ecomImages?: string;
   isVisible: boolean;
   isActive: boolean;
+  variants?: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -146,7 +166,13 @@ export type OrderStatus =
   | "preparing"
   | "ready"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "Pending"
+  | "Confirmed"
+  | "Preparing"
+  | "Ready"
+  | "Completed"
+  | "Cancelled";
 export type PaymentMethod = "cash" | "card" | "online" | "external";
 
 export interface OrderItemTopping {
@@ -635,7 +661,7 @@ export interface DateRange {
   to: Date;
 }
 
-export type DateRangePreset = "today" | "7d" | "30d" | "custom";
+export type DateRangePreset = "today" | "7d" | "30d" | "custom" | "24h" | "12m";
 
 export interface ReportFilters {
   dateRange: DateRange;
@@ -684,3 +710,571 @@ export interface BranchProductVariant {
   isAvailable: boolean;
   isActive?: boolean;
 }
+
+// ============== BACKEND-ALIGNED: USERS ==============
+/** Matches the AppUser entity / FirebaseUser response from the API */
+export interface AppUser {
+  id: string;
+  firebaseUid: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  branchId?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============== BACKEND-ALIGNED: BRANCHES ==============
+/** Customer-facing branch listing (anonymous GET /api/branches/for-sale) */
+export interface BranchForSale {
+  branchId: string;
+  branchName: string;
+  branchDescription?: string;
+  branchAddress: string;
+  branchPhoneNumber: string;
+  isOpen: boolean;
+  openingHours?: BranchOpeningHours[];
+  uberEatsUrl?: string;
+  doorDashUrl?: string;
+}
+
+// ============== BACKEND-ALIGNED: ORDERS ==============
+export type PaymentType = "Cash" | "Card" | "Online" | "External";
+export type OrderType = "DineIn" | "TakeAway" | "Delivery" | "Online";
+
+export interface OrderItemToppingResponse {
+  orderItemToppingId: string;
+  branchToppingId: string;
+  toppingNameSnapshot: string;
+  quantity: number;
+  unitPrice: number;
+  subTotal: number;
+}
+
+export interface OrderItemResponse {
+  orderItemId: string;
+  orderId: string;
+  branchProductVariantId: string;
+  branchProductId: string;
+  productId: string;
+  productName: string;
+  sizeName?: string;
+  quantity: number;
+  unitPrice: number;
+  subTotal: number;
+  discountAmount: number;
+  lineTotal: number;
+  appliedOfferId?: string;
+  appliedOfferNameSnapshot?: string;
+  toppings: OrderItemToppingResponse[];
+}
+
+export interface OrderResponse {
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  branchId: string;
+  paymentType: PaymentType;
+  orderType: OrderType;
+  subTotal: number;
+  discountTotal: number;
+  grandTotal: number;
+  appliedOfferId?: string;
+  appliedOfferNameSnapshot?: string;
+  orderStatus: OrderStatus;
+  items: OrderItemResponse[];
+}
+
+export interface OrderSummaryResponse {
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  branchId: string;
+  paymentType: PaymentType;
+  orderType: OrderType;
+  grandTotal: number;
+  orderStatus: OrderStatus;
+}
+
+export interface OrderListParams {
+  page?: number;
+  pageSize?: number;
+  branchId?: string;
+  search?: string;
+  orderStatus?: OrderStatus;
+  paymentType?: PaymentType;
+  orderType?: OrderType;
+  orderDateFrom?: string;
+  orderDateTo?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+}
+
+export interface CreateOrderSelectedToppingRequest {
+  branchToppingId: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface CreateOrderLineRequest {
+  branchProductVariantId: string;
+  quantity: number;
+  unitPrice: number;
+  subTotal: number;
+  discountAmount: number;
+  lineTotal: number;
+  appliedOfferId?: string;
+  appliedOfferNameSnapshot?: string;
+  selectedToppings: CreateOrderSelectedToppingRequest[];
+}
+
+export interface CreateOrderRequest {
+  orderNumber: string;
+  orderDate: string;
+  branchId: string;
+  paymentType: PaymentType;
+  orderType: OrderType;
+  subTotal: number;
+  discountTotal: number;
+  grandTotal: number;
+  appliedOfferId?: string;
+  appliedOfferNameSnapshot?: string;
+  orderStatus: OrderStatus;
+  items: CreateOrderLineRequest[];
+}
+
+export type UpdateOrderRequest = CreateOrderRequest;
+
+export interface CreateOrderItemRequest {
+  orderId: string;
+  branchProductVariantId: string;
+  quantity: number;
+  unitPrice: number;
+  subTotal: number;
+  discountAmount: number;
+  lineTotal: number;
+  appliedOfferId?: string;
+  appliedOfferNameSnapshot?: string;
+  selectedToppings: CreateOrderSelectedToppingRequest[];
+}
+
+export type UpdateOrderItemRequest = CreateOrderItemRequest;
+
+// ============== BACKEND-ALIGNED: OFFERS ==============
+export type OfferType =
+  | "FlatDiscount"
+  | "PercentageDiscount"
+  | "BuyXGetY"
+  | "FreeItem";
+
+export interface OfferBranchResponse {
+  offerBranchId: string;
+  offerId: string;
+  branchId: string;
+}
+
+export interface OfferItemResponse {
+  offerItemId: string;
+  offerId: string;
+  itemRole: string;
+  targetType: string;
+  productId?: string;
+  branchProductId?: string;
+  quantity?: number;
+  percentageValue?: number;
+  amountValue?: number;
+  fixedPriceValue?: number;
+}
+
+export interface OfferResponse {
+  offerId: string;
+  offerName: string;
+  description?: string;
+  offerType: OfferType;
+  startDateTime: string;
+  endDateTime: string;
+  isActive: boolean;
+  buyAmount?: number;
+  getAmount?: number;
+  offerBranches: OfferBranchResponse[];
+  offerItems: OfferItemResponse[];
+}
+
+export type OfferSummaryResponse = Omit<OfferResponse, "offerItems">;
+
+export interface CreateOfferItemRequest {
+  itemRole: string;
+  targetType: string;
+  productId?: string;
+  branchProductId?: string;
+  quantity?: number;
+  percentageValue?: number;
+  amountValue?: number;
+  fixedPriceValue?: number;
+}
+
+export interface CreateOfferRequest {
+  offerName: string;
+  description?: string;
+  offerType: OfferType;
+  startDateTime: string;
+  endDateTime: string;
+  isActive: boolean;
+  buyAmount?: number;
+  getAmount?: number;
+  branchIds: string[];
+  items: CreateOfferItemRequest[] | string[] | any[];
+}
+
+// ============== BACKEND-ALIGNED: BRANCH PRODUCTS ==============
+export interface BranchProductVariantResponse {
+  branchProductVariantId: string;
+  branchProductId: string;
+  variantName: string;
+  sizeName?: string;
+  price: number;
+  priceOverride?: number;
+  isAvailable: boolean;
+}
+
+export interface BranchProductResponse {
+  branchProductId: string;
+  branchId: string;
+  productId: string;
+  productName: string;
+  isAvailable: boolean;
+  overridePosImage?: string[];
+  overrideEcomImages?: string[];
+  posImage?: string[];
+  ecomImages?: string[];
+  isActive: boolean;
+  variants: BranchProductVariantResponse[];
+}
+
+export interface CreateBranchProductVariantInput {
+  sizeName?: string;
+  variantName?: string;
+  price: number;
+  isAvailable: boolean;
+}
+
+export interface CreateBranchProductRequest {
+  branchId: string;
+  productId: string;
+  isAvailable: boolean;
+  overridePosImage?: string[];
+  overrideEcomImages?: string[];
+  variants: CreateBranchProductVariantInput[];
+}
+
+export interface UpdateBranchProductRequest {
+  isAvailable: boolean;
+  overridePosImage?: string[];
+  overrideEcomImages?: string[];
+}
+
+// ============== BACKEND-ALIGNED: UBER MENUS ==============
+export type UberMenuType = "Delivery" | "PickUp" | "DineIn" | "Catering";
+export type SyncStatus = "Pending" | "Success" | "Failed" | "InProgress";
+export type PlatformCode = "UberEats" | "DoorDash";
+
+export interface UberMenuAvailabilityResponse {
+  uberMenuAvailabilityId: string;
+  dayOfWeek: number;
+  openAt: string;
+  closeAt: string;
+}
+
+export interface UberMenuModifierResponse {
+  uberMenuModifierId: string;
+  toppingId: string;
+  branchToppingId?: string;
+  displayName: string;
+  price: number;
+  imageUrl?: string;
+  externalModifierId?: string;
+  externalReferenceId?: string;
+  sortOrder: number;
+}
+
+export interface UberMenuModifierGroupResponse {
+  uberMenuModifierGroupId: string;
+  branchProductId: string;
+  toppingCategoryId: string;
+  displayName: string;
+  minSelections: number;
+  maxSelections: number;
+  isRequired: boolean;
+  externalModifierGroupId?: string;
+  externalReferenceId?: string;
+  sortOrder: number;
+  modifiers: UberMenuModifierResponse[];
+}
+
+export interface UberMenuItemResponse {
+  uberMenuItemId: string;
+  branchProductId: string;
+  productId: string;
+  productCategoryId: string;
+  displayName: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  externalItemId?: string;
+  externalReferenceId?: string;
+  sortOrder: number;
+  modifierGroupIds: string[];
+}
+
+export interface UberMenuCategoryResponse {
+  uberMenuCategoryId: string;
+  productCategoryId: string;
+  displayName: string;
+  externalCategoryId?: string;
+  externalReferenceId?: string;
+  sortOrder: number;
+}
+
+export interface UberMenuResponse {
+  uberMenuId: string;
+  platformConnectionId: string;
+  branchId: string;
+  localMenuCode: string;
+  menuName: string;
+  description?: string;
+  currencyCode?: string;
+  menuType: UberMenuType;
+  externalMenuId?: string;
+  externalReferenceId?: string;
+  lastSyncedAt?: string;
+  lastSyncStatus?: SyncStatus;
+  isActive: boolean;
+  serviceAvailabilities: UberMenuAvailabilityResponse[];
+  categories: UberMenuCategoryResponse[];
+  items: UberMenuItemResponse[];
+  modifierGroups: UberMenuModifierGroupResponse[];
+}
+
+export type UberMenuSummaryResponse = Pick<
+  UberMenuResponse,
+  | "uberMenuId" | "platformConnectionId" | "branchId" | "localMenuCode"
+  | "menuName" | "menuType" | "externalMenuId" | "lastSyncedAt"
+  | "lastSyncStatus" | "isActive"
+>;
+
+export interface UberMenuSyncResponse {
+  uberMenuId: string;
+  platformConnectionId: string;
+  externalMenuId?: string;
+  syncStatus: SyncStatus;
+  syncedAt: string;
+  message: string;
+  success?: boolean;
+}
+
+export interface UberMenuAvailabilityRequest {
+  dayOfWeek: number;
+  openAt: string;
+  closeAt: string;
+}
+
+export interface UberMenuItemCustomizationRequest {
+  branchProductId: string;
+  displayName?: string;
+  description?: string;
+  price?: number;
+  imageUrl?: string;
+  sortOrder?: number;
+}
+
+export interface CreateUberMenuRequest {
+  branchId: string;
+  platformCode: PlatformCode;
+  localMenuCode?: string;
+  menuName: string;
+  description?: string;
+  currencyCode?: string;
+  menuType: UberMenuType;
+  branchProductIds: string[];
+  itemCustomizations: UberMenuItemCustomizationRequest[];
+  serviceAvailabilities: UberMenuAvailabilityRequest[];
+}
+
+export type UpdateUberMenuRequest = Partial<CreateUberMenuRequest>;
+
+// ============== FIREBASE USER: REQUEST TYPES ==============
+export interface CreateFirebaseUserRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  branchId?: string;
+}
+
+export interface CreateCustomerFirebaseUserRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdateUserRoleRequest {
+  role: string;
+}
+
+export interface UpdateUserRoleResponse {
+  id: string;
+  role: string;
+}
+
+export interface ResetUserPasswordRequest {
+  newPassword: string;
+}
+
+// ============== BACKEND-ALIGNED: PLATFORM CONNECTIONS ==============
+export enum PlatformEnvironment {
+  Sandbox = 0,
+  Production = 1
+}
+
+export interface PlatformConnectionSummary {
+  platformConnectionId: string;
+  platformCode: 0 | 1 | "UberEats" | "DoorDash";
+  platformName: string;
+  storeUrl?: string;
+  webhookConnectionKey?: string;
+  environment: PlatformEnvironment;
+  isActive: boolean;
+  isConfigured: boolean;
+  lastMenuSyncAt?: string;
+  lastSyncStatus?: SyncStatus;
+  
+  // Detailed client inputs if available/queried
+  externalStoreId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  webhookSecret?: string;
+  autoAcceptOrders?: boolean;
+}
+
+// ============== TRAINING / ACADEMY ==============
+
+export type TrainingQualificationStatus = "NotStarted" | "InProgress" | "Passed";
+
+export interface TrainingQuizOptionResponse {
+  trainingQuizOptionId: string;
+  optionText: string;
+}
+
+export interface TrainingQuizQuestionResponse {
+  trainingQuizQuestionId: string;
+  questionText: string;
+  sortOrder: number;
+  isActive: boolean;
+  options: TrainingQuizOptionResponse[];
+}
+
+export interface TrainingVideoResponse {
+  trainingVideoId: string;
+  trainingModuleId: string;
+  title: string;
+  videoUrl: string;
+  sortOrder: number;
+  isRequired: boolean;
+  isActive: boolean;
+}
+
+export interface TrainingModuleSummaryResponse {
+  trainingModuleId: string;
+  title: string;
+  description?: string;
+  videoCount: number;
+  questionCount: number;
+  isActive: boolean;
+  branchId?: string;
+}
+
+export interface TrainingModuleDetailResponse {
+  trainingModuleId: string;
+  branchId?: string;
+  title: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  videos: TrainingVideoResponse[];
+  questions: TrainingQuizQuestionResponse[];
+}
+
+export interface EmployeeTrainingStatusResponse {
+  employeeId: string;
+  trainingModuleId: string;
+  trainingModuleTitle: string;
+  status: TrainingQualificationStatus;
+  passedAt?: string;
+  passedAttemptId?: string;
+  updatedAt: string;
+}
+
+// Request types
+export interface CreateTrainingModuleRequest {
+  title: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface UpdateTrainingModuleRequest {
+  title: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface CreateTrainingVideoRequest {
+  title: string;
+  videoUrl: string;
+  sortOrder: number;
+  isRequired: boolean;
+  isActive: boolean;
+}
+
+export interface CreateTrainingQuestionOptionRequest {
+  optionText: string;
+  isCorrect: boolean;
+}
+
+export interface CreateTrainingQuestionRequest {
+  questionText: string;
+  sortOrder: number;
+  isActive: boolean;
+  options: CreateTrainingQuestionOptionRequest[];
+}
+
+export interface SubmitTrainingAttemptAnswerRequest {
+  questionId: string;
+  selectedOptionId: string;
+}
+
+export interface SubmitTrainingAttemptRequest {
+  startedAt?: string;
+  answers: SubmitTrainingAttemptAnswerRequest[];
+}
+
+export interface TrainingAttemptQuestionResultResponse {
+  questionId: string;
+  selectedOptionId: string;
+  isCorrect: boolean;
+}
+
+export interface TrainingAttemptSubmitResponse {
+  attemptId: string;
+  isPassed: boolean;
+  correctCount: number;
+  totalQuestions: number;
+  qualifiedAt?: string;
+  questionResults: TrainingAttemptQuestionResultResponse[];
+}
+
+

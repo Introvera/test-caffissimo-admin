@@ -2,108 +2,179 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
-import { ThemeToggleSimple } from "@/components/theme-toggle";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, Coffee } from "lucide-react";
+import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/stores/store";
 import { loginWithFirebase } from "@/stores/slices/authSlice";
 
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { isLoading, error: authError } = useAppSelector((state) => state.auth);
-  
+  const { isLoading } = useAppSelector((state) => state.auth);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError("");
-
     try {
-      const resultAction = await dispatch(loginWithFirebase({ email, password }));
+      const resultAction = await dispatch(
+        loginWithFirebase({ email, password }),
+      );
       if (loginWithFirebase.fulfilled.match(resultAction)) {
         router.push("/admin/dashboard");
+      } else if (loginWithFirebase.rejected.match(resultAction)) {
+        toast.error(
+          (resultAction.payload as string) ??
+            "Something went wrong. Please try again.",
+        );
       }
-    } catch (err) {
-      // error handled in slice
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
-  const error = localError || authError;
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-card p-4 relative">
-      <div className="absolute top-4 right-4">
-        <ThemeToggleSimple />
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-24 items-center justify-center rounded-xl bg-zinc-900 p-3 dark:bg-transparent dark:p-0">
+    <div className="min-h-screen flex bg-background text-foreground">
+      {/* ── Left panel: form ── */}
+      <div className="flex flex-col w-full lg:w-1/2 px-8 py-10 justify-between bg-background">
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div className="h-9 w-9 rounded-lg bg-card border border-border flex items-center justify-center overflow-hidden">
             <img
               src="/logo.jpg"
               alt="Caffissimo"
-              className="h-24 w-auto max-w-[320px] object-contain opacity-95 dark:mix-blend-lighten"
+              className="h-8 w-auto object-contain"
             />
           </div>
-          <CardTitle className="text-2xl">Caffissimo Admin</CardTitle>
-          <CardDescription>
-            Sign in to manage your coffee shop
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
+          <span className="font-semibold text-base text-foreground tracking-tight">
+            Caffissimo
+          </span>
+        </div>
+
+        {/* Form */}
+        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full py-12">
+          <h1 className="text-[1.9rem] font-bold text-foreground tracking-tight leading-tight mb-1.5">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground text-sm mb-8">
+            Enter your credentials to access the admin panel.
+          </p>
+
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            {/* Email */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="email"
+                className="text-xs font-medium text-foreground"
+              >
+                Email
+              </label>
+              <input
                 id="email"
                 type="email"
                 placeholder="you@caffissimo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="
+                  w-full px-3.5 py-2.5 rounded-lg text-sm
+                  bg-background border border-border
+                  text-foreground placeholder:text-muted-foreground
+                  outline-none transition-all duration-200
+                  focus:border-primary focus:ring-2 focus:ring-primary/20
+                "
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+
+            {/* Password */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="password"
+                className="text-xs font-medium text-foreground"
+              >
+                Password
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="
+                    w-full px-3.5 py-2.5 pr-10 rounded-lg text-sm
+                    bg-background border border-border
+                    text-foreground placeholder:text-muted-foreground
+                    outline-none transition-all duration-200
+                    focus:border-primary focus:ring-2 focus:ring-primary/20
+                  "
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive text-center">{error}</p>
-            )}
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="
+                w-full py-2.5 rounded-lg text-sm font-semibold
+                bg-primary text-primary-foreground
+                hover:opacity-90 active:opacity-80
+                disabled:opacity-60 disabled:cursor-not-allowed
+                transition-all duration-200 mt-1
+              "
+            >
+              {isLoading ? "Signing in…" : "Sign In"}
+            </button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Footer */}
+        <p className="text-xs text-muted-foreground text-center">
+          © 2025 Caffissimo. All rights reserved.
+        </p>
+      </div>
+
+      {/* ── Right panel: image ── */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Coffee photo */}
+        <img
+          src="/coffee-panel.png"
+          alt="Artisan coffee"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Overlay — uses the brand teal/dark tone */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(160deg, hsl(181 89% 12% / 0.1) 0%, hsl(181 89% 8% / 0.2) 60%, hsl(181 89% 4% / 0.3) 100%)",
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-end p-12 w-full">
+          <h2 className="text-[2rem] font-bold text-white leading-snug tracking-tight mb-3 max-w-sm">
+            Effortlessly manage your café and operations.
+          </h2>
+
+          <p className="text-white/70 text-sm leading-relaxed max-w-xs">
+            Track orders, manage your menu, monitor branches and keep your team
+            in sync — all in one place.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
