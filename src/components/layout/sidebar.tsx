@@ -11,6 +11,7 @@ import {
   Package,
   Tags,
   Store,
+  Truck,
   Thermometer,
   Users,
   Clock,
@@ -24,6 +25,7 @@ import {
   Receipt,
   BoxIcon,
   Building2,
+  Cable,
   UserCog,
   Wrench,
 } from "lucide-react";
@@ -103,6 +105,16 @@ const navEntries: NavEntry[] = [
     children: [
       { title: "Branches", href: "/admin/branches", icon: Store },
       { title: "Fridge Stock", href: "/admin/fridge-stock", icon: Thermometer },
+    ],
+  },
+  {
+    type: "group",
+    title: "Integrations",
+    icon: Cable,
+    permission: canAccessAdmin,
+    children: [
+      { title: "Uber Eats", href: "/admin/uber-eats", icon: Store },
+      { title: "Uber Eats Orders", href: "/admin/uber-eats/orders", icon: Truck },
     ],
   },
   {
