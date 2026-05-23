@@ -109,7 +109,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
       setFormData(branch);
 
       const uberConn = branch.platformConnections?.find(
-        (pc) => pc.platformCode === "UberEats" || pc.platformCode === 0,
+        (pc) => pc.platformCode === "UberEats" || (pc.platformCode as any) === 0,
       );
       if (uberConn) {
         setUberUrl(uberConn.storeUrl || "");
@@ -120,6 +120,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
         setUberWebhookConnectionKey(uberConn.webhookConnectionKey || "");
         setUberEnvironment(
           uberConn.environment === PlatformEnvironment.Production ||
+            (uberConn.environment as any) === "Production" ||
             (uberConn.environment as any) === 1
             ? 1
             : 0,
@@ -130,7 +131,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
       }
 
       const ddConn = branch.platformConnections?.find(
-        (pc) => pc.platformCode === "DoorDash" || pc.platformCode === 1,
+        (pc) => pc.platformCode === "DoorDash" || (pc.platformCode as any) === 1,
       );
       if (ddConn) {
         setDdUrl(ddConn.storeUrl || "");
@@ -141,6 +142,7 @@ export default function BranchDetailPage({ params }: BranchDetailPageProps) {
         setDdWebhookConnectionKey(ddConn.webhookConnectionKey || "");
         setDdEnvironment(
           ddConn.environment === PlatformEnvironment.Production ||
+            (ddConn.environment as any) === "Production" ||
             (ddConn.environment as any) === 1
             ? 1
             : 0,

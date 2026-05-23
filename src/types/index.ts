@@ -97,20 +97,7 @@ export interface Branch {
   updatedAt: string;
 }
 
-export type PlatformEnvironment = "Sandbox" | "Production";
-
-export interface PlatformConnectionSummary {
-  platformConnectionId: string;
-  platformCode: PlatformCode;
-  platformName: string;
-  storeUrl?: string;
-  webhookConnectionKey?: string;
-  environment: PlatformEnvironment;
-  isActive: boolean;
-  isConfigured: boolean;
-  lastMenuSyncAt?: string;
-  lastSyncStatus?: SyncStatus;
-}
+// PlatformEnvironment enum and extended PlatformConnectionSummary declared in BACKEND-ALIGNED section below
 
 // ============== PRODUCTS ==============
 export interface Category {
@@ -529,10 +516,10 @@ export interface UberOrderActionResult {
 }
 
 export type OfferType =
-  | "PercentageOff"
-  | "AmountOff"
-  | "FixedPrice"
-  | "BuyXGetY";
+  | "FlatDiscount"
+  | "PercentageDiscount"
+  | "BuyXGetY"
+  | "FreeItem";
 export type OfferItemRole = "Target" | "BuyItem" | "RewardItem";
 export type OfferTargetType = "Product" | "BranchProduct" | "Order";
 
@@ -863,11 +850,7 @@ export interface CreateOrderItemRequest {
 export type UpdateOrderItemRequest = CreateOrderItemRequest;
 
 // ============== BACKEND-ALIGNED: OFFERS ==============
-export type OfferType =
-  | "FlatDiscount"
-  | "PercentageDiscount"
-  | "BuyXGetY"
-  | "FreeItem";
+// OfferType declared above
 
 export interface OfferBranchResponse {
   offerBranchId: string;
@@ -976,9 +959,7 @@ export interface UpdateBranchProductRequest {
 }
 
 // ============== BACKEND-ALIGNED: UBER MENUS ==============
-export type UberMenuType = "Delivery" | "PickUp" | "DineIn" | "Catering";
-export type SyncStatus = "Pending" | "Success" | "Failed" | "InProgress";
-export type PlatformCode = "UberEats" | "DoorDash";
+// UberMenuType, SyncStatus, PlatformCode declared above
 
 export interface UberMenuAvailabilityResponse {
   uberMenuAvailabilityId: string;
@@ -1089,20 +1070,7 @@ export interface UberMenuItemCustomizationRequest {
   sortOrder?: number;
 }
 
-export interface CreateUberMenuRequest {
-  branchId: string;
-  platformCode: PlatformCode;
-  localMenuCode?: string;
-  menuName: string;
-  description?: string;
-  currencyCode?: string;
-  menuType: UberMenuType;
-  branchProductIds: string[];
-  itemCustomizations: UberMenuItemCustomizationRequest[];
-  serviceAvailabilities: UberMenuAvailabilityRequest[];
-}
-
-export type UpdateUberMenuRequest = Partial<CreateUberMenuRequest>;
+// CreateUberMenuRequest, UpdateUberMenuRequest declared above
 
 // ============== FIREBASE USER: REQUEST TYPES ==============
 export interface CreateFirebaseUserRequest {
