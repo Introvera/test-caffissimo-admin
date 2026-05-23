@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/stores/store";
 import { useGetBranchesQuery } from "@/stores/api/branchApi";
 import { useGetUberOrdersQuery } from "@/stores/api/uberApi";
-import { canAccessAdmin } from "@/lib/rbac";
+import { canAccessAdmin, canAccessAllBranches } from "@/lib/rbac";
 import { PageHeader } from "@/components/shared/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
+import { KPICard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
+import { UserRole } from "@/types";
 
 const ORDER_TABS = [
   { key: "all", label: "All", icon: Package },
@@ -90,13 +91,13 @@ function getDeadlineInfo(deadlineAt: string | null): { text: string; urgent: boo
 
 export default function UberEatsOrdersPage() {
   const router = useRouter();
-  const currentRole = useAppSelector((s) => s.ui.currentRole);
-  const assignedBranchId = useAppSelector((s) => s.ui.assignedBranchId);
-  const globalBranchId = useAppSelector((s) => s.ui.selectedBranchId);
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const assignedBranchId = useAppSelector((state) => state.auth.user?.branchId) || null;
+  const persistedSelectedBranchId = useAppSelector((state) => state.ui.selectedBranchId);
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string | undefined>(
-    globalBranchId ?? assignedBranchId ?? undefined
-  );
+  const canUseAllBranches = canAccessAllBranches(currentRole);
+
+  const [selectedBranchId, setSelectedBranchId] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [page, setPage] = useState(1);
   const [, setTick] = useState(0);
@@ -106,14 +107,36 @@ export default function UberEatsOrdersPage() {
     pageSize: 100,
   });
 
+  const branchOptions = useMemo(() => {
+    const branches = branchesData?.items ?? [];
+    if (canUseAllBranches) return branches;
+    if (!assignedBranchId) return [];
+    return branches.filter((branch) => branch.branchId === assignedBranchId);
+  }, [assignedBranchId, branchesData?.items, canUseAllBranches]);
+
+  useEffect(() => {
+    if (branchOptions.length === 0) return;
+    if (selectedBranchId && branchOptions.some((b) => b.branchId === selectedBranchId)) return;
+
+    const preferred = persistedSelectedBranchId
+      && branchOptions.some((b) => b.branchId === persistedSelectedBranchId)
+      ? persistedSelectedBranchId
+      : assignedBranchId
+        && branchOptions.some((b) => b.branchId === assignedBranchId)
+        ? assignedBranchId
+        : branchOptions[0]?.branchId;
+
+    if (preferred) setSelectedBranchId(preferred);
+  }, [branchOptions, selectedBranchId, persistedSelectedBranchId, assignedBranchId]);
+
   const { data: ordersData, isLoading: ordersLoading, refetch } = useGetUberOrdersQuery(
     {
-      branchId: selectedBranchId,
+      branchId: selectedBranchId || undefined,
       status: activeTab === "all" ? undefined : activeTab,
       page,
       pageSize: 15,
     },
-    { pollingInterval: 30000 }
+    { pollingInterval: 30000, skip: !selectedBranchId }
   );
 
   useEffect(() => {
@@ -140,40 +163,41 @@ export default function UberEatsOrdersPage() {
       <PageHeader
         title="Uber Eats Orders"
         description="Monitor incoming Uber Eats orders"
-      >
-        <div className="flex items-center gap-3">
-          <Select
-            value={selectedBranchId ?? ""}
-            onValueChange={(v) => { setSelectedBranchId(v || undefined); setPage(1); }}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="All branches" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All branches</SelectItem>
-              {branchesData?.items.map((b) => (
-                <SelectItem key={b.branchId} value={b.branchId}>
-                  {b.branchName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={ordersLoading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${ordersLoading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-        </div>
-      </PageHeader>
+        actions={
+          <div className="flex items-center gap-3">
+            <Select
+              value={selectedBranchId}
+              onValueChange={(v) => { setSelectedBranchId(v); setPage(1); }}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {branchOptions.map((b) => (
+                  <SelectItem key={b.branchId} value={b.branchId}>
+                    {b.branchName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={ordersLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${ordersLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KpiCard title="Total Orders" value={totalCount} loading={ordersLoading} />
-        <KpiCard title="New (Pending)" value={newCount} loading={ordersLoading} />
-        <KpiCard
+        <KPICard title="Total Orders" value={totalCount} icon={Package} isLoading={ordersLoading} />
+        <KPICard title="New (Pending)" value={newCount} icon={Clock} isLoading={ordersLoading} />
+        <KPICard
           title="Page"
           value={`${page} / ${Math.max(1, Math.ceil(totalCount / 15))}`}
-          loading={ordersLoading}
+          icon={ShoppingBag}
+          isLoading={ordersLoading}
         />
-        <KpiCard title="Auto-refresh" value="30s" loading={false} />
+        <KPICard title="Auto-refresh" value="30s" icon={RefreshCw} />
       </div>
 
       <div className="flex gap-2 flex-wrap">

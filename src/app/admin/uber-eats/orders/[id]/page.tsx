@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useGetUberOrderByIdQuery } from "@/stores/api/uberApi";
 import { useAppSelector } from "@/stores/store";
 import { canAccessAdmin } from "@/lib/rbac";
-import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
+import { UserRole } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -136,7 +136,7 @@ export default function UberEatsOrderDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const currentRole = useAppSelector((s) => s.ui.currentRole);
+  const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
 
   const { data: order, isLoading, refetch } = useGetUberOrderByIdQuery(id, {
     pollingInterval: 15000,
