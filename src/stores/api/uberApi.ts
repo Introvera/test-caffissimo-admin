@@ -10,6 +10,9 @@ import {
   UberMenuSummary,
   UberMenuSyncResponse,
   UberOrderWebhookReceiveResponse,
+  UberOrderStagingSummary,
+  UberOrderStagingDetail,
+  UberOrderActionResult,
 } from "@/types";
 
 interface UberMenuListParams extends PaginationParams {
@@ -30,6 +33,12 @@ interface BranchProductListParams extends PaginationParams {
 interface SendUberOrderWebhookEventRequest {
   payload: Record<string, unknown>;
   connectionKey?: string;
+}
+
+interface UberOrderListParams extends PaginationParams {
+  branchId?: string;
+  status?: string;
+  search?: string;
 }
 
 export const uberApi = baseApi.injectEndpoints({
@@ -140,6 +149,78 @@ export const uberApi = baseApi.injectEndpoints({
         body: payload,
       }),
     }),
+
+    getUberOrders: builder.query<
+      PagedResult<UberOrderStagingSummary>,
+      UberOrderListParams | void
+    >({
+      query: (params) => ({
+        url: "/api/uber-orders",
+        params: params ?? undefined,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.items.map((item) => ({
+                type: "UberOrder" as const,
+                id: item.uberOrderStagingId,
+              })),
+              { type: "UberOrder" as const, id: "LIST" },
+            ]
+          : [{ type: "UberOrder" as const, id: "LIST" }],
+    }),
+
+    getUberOrderById: builder.query<UberOrderStagingDetail, string>({
+      query: (id) => `/api/uber-orders/${id}`,
+      providesTags: (result, error, id) => [
+        { type: "UberOrder" as const, id },
+      ],
+    }),
+
+    acceptUberOrder: builder.mutation<
+      UberOrderActionResult,
+      { id: string; reason?: string; pickupTime?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/api/uber-orders/${id}/accept`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: "UberOrder" as const, id: arg.id },
+        { type: "UberOrder" as const, id: "LIST" },
+      ],
+    }),
+
+    denyUberOrder: builder.mutation<
+      UberOrderActionResult,
+      { id: string; reasonCode: string; explanation?: string; outOfStockItems?: string[] }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/api/uber-orders/${id}/deny`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: "UberOrder" as const, id: arg.id },
+        { type: "UberOrder" as const, id: "LIST" },
+      ],
+    }),
+
+    cancelUberOrder: builder.mutation<
+      UberOrderActionResult,
+      { id: string; reason: string; details?: string }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/api/uber-orders/${id}/cancel`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: "UberOrder" as const, id: arg.id },
+        { type: "UberOrder" as const, id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -157,4 +238,9 @@ export const {
   useSendUberOrderWebhookEventMutation,
   useSyncUberMenuMutation,
   useUpdateUberMenuMutation,
+  useGetUberOrdersQuery,
+  useGetUberOrderByIdQuery,
+  useAcceptUberOrderMutation,
+  useDenyUberOrderMutation,
+  useCancelUberOrderMutation,
 } = uberApi;

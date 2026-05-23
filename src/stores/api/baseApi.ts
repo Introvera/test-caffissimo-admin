@@ -26,6 +26,7 @@ export const baseApi = createApi({
     "BranchProductVariant",
     "Offer",
     "UberMenu",
+    "UberOrder",
   ],
   endpoints: () => ({}),
 });

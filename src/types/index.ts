@@ -374,6 +374,134 @@ export interface UberOrderWebhookReceiveResponse {
   processingStatus: UberWebhookProcessingStatus;
 }
 
+// Uber Eats Order types
+export interface UberOrderStagingSummary {
+  uberOrderStagingId: string;
+  uberOrderId: string;
+  displayId: string | null;
+  branchId: string;
+  currentState: string | null;
+  orderStatus: string | null;
+  customerName: string | null;
+  fulfillmentType: string | null;
+  orderType: string | null;
+  brand: string | null;
+  currencyCode: string;
+  subtotalAmount: number;
+  discountTotal: number;
+  taxTotal: number;
+  feeTotal: number;
+  tipTotal: number;
+  totalAmount: number;
+  promotionCount: number;
+  promotionSummary: string | null;
+  acceptDeadlineAt: string | null;
+  acceptedAt: string | null;
+  deniedAt: string | null;
+  stagingStatus: number;
+  createdAt: string;
+  receivedAt: string;
+  itemCount: number;
+}
+
+export interface UberOrderStagingItemModifier {
+  uberOrderStagingItemModifierId: string;
+  modifierGroupId: string;
+  modifierGroupTitle: string | null;
+  modifierId: string;
+  toppingId: string | null;
+  branchToppingId: string | null;
+  title: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface UberOrderStagingItem {
+  uberOrderStagingItemId: string;
+  uberItemId: string;
+  branchProductId: string | null;
+  productId: string | null;
+  instanceId: string | null;
+  title: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  specialInstructions: string | null;
+  modifiers: UberOrderStagingItemModifier[];
+}
+
+export interface UberOrderStagingPromotion {
+  uberOrderStagingPromotionId: string;
+  promotionUuid: string | null;
+  externalPromotionId: string | null;
+  promoType: string;
+  discountValue: number;
+  discountPercentage: number;
+  deliveryFeeValue: number;
+  merchantFundedAmount: number;
+  uberFundedAmount: number;
+}
+
+export interface UberOrderStagingDetail {
+  uberOrderStagingId: string;
+  uberOrderId: string;
+  displayId: string | null;
+  branchId: string;
+  platformConnectionId: string;
+  externalStoreId: string;
+  currentState: string | null;
+  orderStatus: string | null;
+  customerName: string | null;
+  eaterFirstName: string | null;
+  eaterLastName: string | null;
+  eaterPhone: string | null;
+  fulfillmentType: string | null;
+  orderType: string | null;
+  brand: string | null;
+  currencyCode: string;
+  subtotalAmount: number;
+  discountTotal: number;
+  taxTotal: number;
+  feeTotal: number;
+  tipTotal: number;
+  totalAmount: number;
+  deliveryFee: number;
+  smallOrderFee: number;
+  bagFee: number;
+  promotionCount: number;
+  promotionSummary: string | null;
+  specialInstructions: string | null;
+  estimatedReadyTime: string | null;
+  estimatedPickupTime: string | null;
+  deliveryId: string | null;
+  deliveryState: string | null;
+  deliveryDriverName: string | null;
+  acceptedAt: string | null;
+  deniedAt: string | null;
+  denyReasonCode: string | null;
+  acceptDeadlineAt: string | null;
+  externalReferenceId: string | null;
+  stagingStatus: number;
+  posSyncStatus: number;
+  receivedAt: string;
+  fetchedAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  lastSyncError: string | null;
+  items: UberOrderStagingItem[];
+  promotions: UberOrderStagingPromotion[];
+}
+
+export interface UberOrderActionResult {
+  uberOrderStagingId: string;
+  uberOrderId: string;
+  action: string;
+  success: boolean;
+  message: string | null;
+  currentState: string | null;
+}
+
 export type OfferType =
   | "PercentageOff"
   | "AmountOff"

@@ -1,22 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Copy,
-  Database,
-  Link2,
-  Loader2,
-  RadioTower,
-  Send,
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppSelector } from "@/stores/store";
+import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { useGetUberOrdersQuery } from "@/stores/api/uberApi";
+import { canAccessAdmin } from "@/lib/rbac";
 import { PageHeader } from "@/components/shared/page-header";
+import { KpiCard } from "@/components/shared/kpi-card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,332 +18,280 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { canAccessAdmin, canAccessAllBranches } from "@/lib/rbac";
-import { cn } from "@/lib/utils";
-import { useGetBranchesQuery } from "@/stores/api/branchApi";
-import { useSendUberOrderWebhookEventMutation } from "@/stores/api/uberApi";
-import { useAppSelector } from "@/stores/store";
-import { UserRole } from "@/types";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ShoppingBag,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  RefreshCw,
+  Package,
+  AlertTriangle,
+} from "lucide-react";
+import { format } from "date-fns";
 
-function getApiErrorMessage(error: unknown) {
-  const candidate = error as {
-    data?: { message?: string } | string;
-    error?: string;
-  };
+const ORDER_TABS = [
+  { key: "all", label: "All", icon: Package },
+  { key: "CREATED", label: "New", icon: Clock },
+  { key: "ACCEPTED", label: "Accepted", icon: CheckCircle2 },
+  { key: "DENIED", label: "Denied", icon: XCircle },
+  { key: "CANCELED", label: "Cancelled", icon: XCircle },
+  { key: "FINISHED", label: "Completed", icon: CheckCircle2 },
+];
 
-  if (typeof candidate.data === "string") return candidate.data;
-  if (candidate.data?.message) return candidate.data.message;
-  if (candidate.error) return candidate.error;
-  if (error instanceof Error) return error.message;
-  return "Request failed.";
+function stateVariant(state: string | null): "default" | "secondary" | "destructive" | "outline" {
+  switch (state?.toUpperCase()) {
+    case "CREATED": return "default";
+    case "ACCEPTED": return "secondary";
+    case "DENIED": return "destructive";
+    case "CANCELED": return "destructive";
+    case "FINISHED": return "outline";
+    default: return "outline";
+  }
 }
 
-const SAMPLE_PAYLOAD = `{
-  "event_id": "test-webhook-event-001",
-  "event_type": "orders.notification",
-  "meta": {
-    "store_id": "replace-with-uber-store-id"
-  },
-  "resource_href": "https://test-api.uber.com/v2/eats/order/replace-with-order-id",
-  "resource_id": "replace-with-order-id"
-}`;
+function formatMoney(amount: number, currency: string = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+function formatOptionalDate(date: string | null): string {
+  if (!date) return "-";
+  try {
+    return format(new Date(date), "MMM d, h:mm a");
+  } catch {
+    return date;
+  }
+}
+
+function getDeadlineInfo(deadlineAt: string | null): { text: string; urgent: boolean; expired: boolean } | null {
+  if (!deadlineAt) return null;
+  const deadline = new Date(deadlineAt);
+  const now = new Date();
+  const diffMs = deadline.getTime() - now.getTime();
+
+  if (diffMs <= 0) return { text: "Expired", urgent: true, expired: true };
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffSec = Math.floor((diffMs % 60000) / 1000);
+
+  return {
+    text: diffMin > 0 ? `${diffMin}m ${diffSec}s` : `${diffSec}s`,
+    urgent: diffMin < 3,
+    expired: false,
+  };
+}
 
 export default function UberEatsOrdersPage() {
-  const currentRole =
-    useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
-  const assignedBranchId =
-    useAppSelector((state) => state.auth.user?.branchId) || null;
+  const router = useRouter();
+  const currentRole = useAppSelector((s) => s.ui.currentRole);
+  const assignedBranchId = useAppSelector((s) => s.ui.assignedBranchId);
+  const globalBranchId = useAppSelector((s) => s.ui.selectedBranchId);
 
-  const canUseUberTools = canAccessAdmin(currentRole);
-  const canUseAllBranches = canAccessAllBranches(currentRole);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | undefined>(
+    globalBranchId ?? assignedBranchId ?? undefined
+  );
+  const [activeTab, setActiveTab] = useState("all");
+  const [page, setPage] = useState(1);
+  const [, setTick] = useState(0);
 
-  const [selectedBranchId, setSelectedBranchId] = useState("");
-  const [connectionKey, setConnectionKey] = useState("");
-  const [payloadText, setPayloadText] = useState(SAMPLE_PAYLOAD);
-  const [notice, setNotice] = useState<{
-    kind: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [lastResult, setLastResult] = useState<{
-    statusCode: number;
-    body: unknown;
-    at: string;
-  } | null>(null);
-
-  const { data: branchesData, isLoading: branchesLoading } = useGetBranchesQuery({
+  const { data: branchesData } = useGetBranchesQuery({
     page: 1,
     pageSize: 100,
   });
-  const [sendWebhook, { isLoading: sendingWebhook }] =
-    useSendUberOrderWebhookEventMutation();
 
-  const branchOptions = useMemo(() => {
-    const branches = branchesData?.items ?? [];
-    if (canUseAllBranches) return branches;
-    if (!assignedBranchId) return [];
-    return branches.filter((branch) => branch.branchId === assignedBranchId);
-  }, [assignedBranchId, branchesData?.items, canUseAllBranches]);
-
-  const selectedBranch = branchOptions.find(
-    (branch) => branch.branchId === selectedBranchId,
-  );
-  const uberConnection = selectedBranch?.platformConnections?.find(
-    (connection) => connection.platformCode === "UberEats" && connection.isActive,
+  const { data: ordersData, isLoading: ordersLoading, refetch } = useGetUberOrdersQuery(
+    {
+      branchId: selectedBranchId,
+      status: activeTab === "all" ? undefined : activeTab,
+      page,
+      pageSize: 15,
+    },
+    { pollingInterval: 30000 }
   );
 
-  const webhookUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/uber-eats/webhooks/orders`;
-  const resolvedConnectionKey = connectionKey.trim() || uberConnection?.webhookConnectionKey || "";
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const onCopyWebhookUrl = async () => {
-    try {
-      await navigator.clipboard.writeText(webhookUrl);
-      setNotice({ kind: "success", message: "Webhook URL copied." });
-    } catch {
-      setNotice({ kind: "error", message: "Failed to copy webhook URL." });
-    }
-  };
-
-  const onSendTestWebhook = async () => {
-    let payload: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(payloadText) as unknown;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        setNotice({
-          kind: "error",
-          message: "Payload must be a JSON object.",
-        });
-        return;
-      }
-      payload = parsed as Record<string, unknown>;
-    } catch {
-      setNotice({
-        kind: "error",
-        message: "Payload is not valid JSON.",
-      });
-      return;
-    }
-
-    try {
-      const response = await sendWebhook({
-        payload,
-        connectionKey: resolvedConnectionKey || undefined,
-      }).unwrap();
-
-      setLastResult({
-        statusCode: 200,
-        body: response,
-        at: new Date().toISOString(),
-      });
-      setNotice({
-        kind: "success",
-        message: "Webhook accepted by backend.",
-      });
-    } catch (error) {
-      setLastResult({
-        statusCode: 400,
-        body: { error: getApiErrorMessage(error) },
-        at: new Date().toISOString(),
-      });
-      setNotice({
-        kind: "error",
-        message: getApiErrorMessage(error),
-      });
-    }
-  };
-
-  if (!canUseUberTools) {
+  if (!canAccessAdmin(currentRole)) {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Uber Eats Orders" />
-        <Card>
-          <CardContent className="p-10">
-            <div className="flex items-center gap-3 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              <p className="font-medium">
-                You don&apos;t have permission to view Uber Eats order tools.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          You do not have permission to access this page.
+        </CardContent>
+      </Card>
     );
   }
+
+  const orders = ordersData?.items ?? [];
+  const totalCount = ordersData?.totalCount ?? 0;
+  const newCount = orders.filter((o) => o.currentState === "CREATED").length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Uber Eats Orders"
-        description="Webhook intake and staging foundation for multi-branch Uber Eats tracking"
-      />
-
-      {notice ? (
-        <div
-          className={cn(
-            "flex items-start gap-2 rounded-lg border px-4 py-3 text-sm",
-            notice.kind === "success"
-              ? "border-[#10b981]/30 bg-[#10b981]/10 text-[#0d9668]"
-              : "border-destructive/30 bg-destructive/10 text-destructive",
-          )}
-        >
-          {notice.kind === "success" ? (
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          ) : (
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          )}
-          <p>{notice.message}</p>
+        description="Monitor incoming Uber Eats orders"
+      >
+        <div className="flex items-center gap-3">
+          <Select
+            value={selectedBranchId ?? ""}
+            onValueChange={(v) => { setSelectedBranchId(v || undefined); setPage(1); }}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="All branches" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All branches</SelectItem>
+              {branchesData?.items.map((b) => (
+                <SelectItem key={b.branchId} value={b.branchId}>
+                  {b.branchName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={ordersLoading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${ordersLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
-      ) : null}
+      </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Endpoint</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <RadioTower className="h-4 w-4" />
-              `POST /api/uber-eats/webhooks/orders`
-            </div>
-            <div className="rounded-md border bg-muted/30 p-2 text-xs break-all">
-              {webhookUrl}
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={onCopyWebhookUrl}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copy URL
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Branch Resolution</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-muted-foreground" />
-              <span>Via `ExternalStoreId` from payload first</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-muted-foreground" />
-              <span>Fallback via `?connectionKey=` query</span>
-            </div>
-            <Badge variant="secondary">Single endpoint for all branches</Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Current Scope</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Webhook intake and staging are active.</p>
-            <p>POS sync automation is intentionally not enabled yet.</p>
-            <p>DoorDash onboarding is planned for a later phase.</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard title="Total Orders" value={totalCount} loading={ordersLoading} />
+        <KpiCard title="New (Pending)" value={newCount} loading={ordersLoading} />
+        <KpiCard
+          title="Page"
+          value={`${page} / ${Math.max(1, Math.ceil(totalCount / 15))}`}
+          loading={ordersLoading}
+        />
+        <KpiCard title="Auto-refresh" value="30s" loading={false} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Send Test Webhook</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Branch (optional)</Label>
-              <Select
-                value={selectedBranchId}
-                onValueChange={setSelectedBranchId}
-                disabled={branchesLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch to auto-fill connection key" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branchOptions.map((branch) => (
-                    <SelectItem key={branch.branchId} value={branch.branchId}>
-                      {branch.branchName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Connection Key (optional)</Label>
-              <Input
-                value={connectionKey}
-                onChange={(event) => setConnectionKey(event.target.value)}
-                placeholder={uberConnection?.webhookConnectionKey || "connection key"}
-              />
-              <p className="text-xs text-muted-foreground">
-                Active branch key: {uberConnection?.webhookConnectionKey || "Not configured"}
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label>Webhook Payload (JSON)</Label>
-            <Textarea
-              rows={12}
-              value={payloadText}
-              onChange={(event) => setPayloadText(event.target.value)}
-              className="font-mono text-xs"
-            />
-          </div>
-
-          <div className="flex justify-end">
+      <div className="flex gap-2 flex-wrap">
+        {ORDER_TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
             <Button
-              type="button"
-              onClick={onSendTestWebhook}
-              disabled={sendingWebhook}
+              key={tab.key}
+              variant={activeTab === tab.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setActiveTab(tab.key); setPage(1); }}
             >
-              {sendingWebhook ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              Send to Webhook Endpoint
+              <Icon className="h-4 w-4 mr-1" />
+              {tab.label}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          );
+        })}
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Last Response</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!lastResult ? (
-            <p className="text-sm text-muted-foreground">
-              No test webhook sent in this session.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={lastResult.statusCode < 300 ? "success" : "destructive"}>
-                  HTTP {lastResult.statusCode}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{lastResult.at}</span>
-              </div>
-              <pre className="max-h-[280px] overflow-auto rounded-md border bg-muted/30 p-3 text-xs">
-                {JSON.stringify(lastResult.body, null, 2)}
-              </pre>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {ordersLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : orders.length === 0 ? (
+        <EmptyState
+          icon={ShoppingBag}
+          title="No orders found"
+          description={activeTab === "all" ? "No Uber Eats orders yet." : `No ${activeTab.toLowerCase()} orders.`}
+        />
+      ) : (
+        <div className="space-y-3">
+          {orders.map((order) => {
+            const deadline = order.currentState === "CREATED"
+              ? getDeadlineInfo(order.acceptDeadlineAt)
+              : null;
+
+            return (
+              <Card
+                key={order.uberOrderStagingId}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => router.push(`/admin/uber-eats/orders/${order.uberOrderStagingId}`)}
+              >
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold text-lg">
+                            #{order.displayId ?? order.uberOrderId.slice(0, 5).toUpperCase()}
+                          </span>
+                          <Badge variant={stateVariant(order.currentState)}>
+                            {order.orderStatus ?? order.currentState ?? "Unknown"}
+                          </Badge>
+                          {order.promotionCount > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {order.promotionCount} promo{order.promotionCount > 1 ? "s" : ""}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
+                          <span>{order.customerName ?? "Unknown customer"}</span>
+                          <span>{order.itemCount} item{order.itemCount !== 1 ? "s" : ""}</span>
+                          <span>{order.fulfillmentType ?? order.orderType ?? ""}</span>
+                          <span>{formatOptionalDate(order.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0">
+                      {deadline && !deadline.expired && (
+                        <div className={`text-sm font-mono ${deadline.urgent ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+                          <Clock className="h-3 w-3 inline mr-1" />
+                          {deadline.text}
+                        </div>
+                      )}
+                      {deadline?.expired && (
+                        <div className="text-sm text-destructive font-semibold">
+                          <AlertTriangle className="h-3 w-3 inline mr-1" />
+                          Expired
+                        </div>
+                      )}
+                      <span className="font-semibold text-lg">
+                        {formatMoney(order.totalAmount, order.currencyCode)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {totalCount > 15 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground self-center">
+            Page {page} of {Math.ceil(totalCount / 15)}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= Math.ceil(totalCount / 15)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
-
