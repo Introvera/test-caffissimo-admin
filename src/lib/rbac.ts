@@ -60,3 +60,8 @@ export const canViewAuditLogs = (role: UserRole | undefined): boolean => {
 export const canManageSettings = (role: UserRole | undefined): boolean => {
   return isSuperAdmin(role);
 };
+
+export const canManageSpecialDays = (role: UserRole | undefined): boolean => {
+  return isSuperAdmin(role);
+};
+

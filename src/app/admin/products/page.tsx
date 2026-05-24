@@ -114,17 +114,7 @@ export default function ProductsPage() {
   const products = (productsData?.items as unknown as Product[]) || [];
   const totalCount = productsData?.totalCount || 0;
 
-  const handleToggleVisibility = async (productId: string, currentVisibility: boolean) => {
-    try {
-      await updateProduct({
-        id: productId,
-        data: { isVisible: !currentVisibility }
-      }).unwrap();
-      toast.success(`Product ${!currentVisibility ? "visible" : "hidden"} successfully`);
-    } catch (error) {
-      toast.error("Failed to update product visibility");
-    }
-  };
+
 
   const columns = useMemo(
     () => {
@@ -190,21 +180,7 @@ export default function ProductsPage() {
         })
       );
 
-      // Only show Visibility toggle to Super Admins
-      if (isSuperAdmin(currentRole as UserRole)) {
-        baseColumns.push(
-          columnHelper.accessor("isVisible", {
-            header: "Visible",
-            cell: (info) => (
-              <Switch
-                checked={info.getValue()}
-                onCheckedChange={() => handleToggleVisibility(info.row.original.productId, info.getValue())}
-                disabled={!canManageProducts(currentRole as UserRole)}
-              />
-            ),
-          })
-        );
-      }
+
 
       baseColumns.push(
         columnHelper.display({

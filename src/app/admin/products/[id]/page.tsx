@@ -59,10 +59,9 @@ import { toast } from "sonner";
 
 const productSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters").or(z.literal("")),
   categoryId: z.string().min(1, "Please select a category"),
-  price: z.number().min(0, "Price must be greater than or equal to 0"),
-  isVisible: z.boolean(),
+  price: z.number().positive("Price must be greater than 0"),
   isActive: z.boolean(),
 });
 
@@ -231,7 +230,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       description: "",
       categoryId: "",
       price: 0,
-      isVisible: true,
       isActive: true,
     },
   });
@@ -243,8 +241,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         description: product.productDescription || "",
         categoryId: product.productCategoryId,
         price: product.productPrice ?? 0,
-        isVisible: product.isVisible,
-        isActive: product.isActive,
+        isActive: !!product.isActive,
       });
       setBasePosImage(product.posImage || null);
       if (product.ecomImages) {
@@ -350,7 +347,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           productDescription: data.description,
           productCategoryId: data.categoryId,
           productPrice: Number(data.price),
-          isVisible: data.isVisible,
           isActive: data.isActive,
           // Handle images uploads and URLs...
         } as never
@@ -449,6 +445,18 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     }
   };
 
+  const onInvalid = (errors: any) => {
+    console.warn("Form validation errors:", errors);
+    const errorMessages = Object.entries(errors)
+      .map(([field, err]: [string, any]) => {
+        const message = err?.message || "Invalid value";
+        const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
+        return `${fieldName}: ${message}`;
+      })
+      .join(", ");
+    toast.error(`Please fix validation errors: ${errorMessages || "Check all fields"}`);
+  };
+
   const unconfiguredBranches = branches.filter(b => !branchConfigs.find(c => c.branchId === b.branchId));
 
   if (productLoading || branchProductsLoading || productToppingsLoading || !isInitialized) {
@@ -504,7 +512,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center border-b border-border">
             <TabsList className="bg-transparent h-auto p-0 gap-0 justify-start flex-1">
@@ -596,16 +604,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                       </div>
                       {errors.price && <p className="text-sm text-destructive">{errors.price.message as string}</p>}
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
-                      <div className="space-y-2 flex flex-col justify-center">
-                        <Label>Visible</Label>
-                        <Switch disabled={isFormDisabled} checked={watch("isVisible")} onCheckedChange={(val) => setValue("isVisible", val)} />
-                      </div>
-                      <div className="space-y-2 flex flex-col justify-center">
-                        <Label>Active</Label>
-                        <Switch disabled={isFormDisabled} checked={watch("isActive")} onCheckedChange={(val) => setValue("isActive", val)} />
-                      </div>
-                    </div>
+                     <div className="space-y-2 flex flex-col justify-center mt-4 pt-4 border-t">
+                       <Label>Active</Label>
+                       <Switch disabled={isFormDisabled} checked={watch("isActive")} onCheckedChange={(val) => setValue("isActive", val)} />
+                     </div>
                   </CardContent>
                 </Card>
 

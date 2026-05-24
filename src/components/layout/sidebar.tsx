@@ -29,6 +29,7 @@ import {
   FileText,
   GraduationCap,
   BookOpen,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,15 @@ const navEntries: NavEntry[] = [
   },
   {
     type: "group",
+    title: "E-commerce",
+    icon: ShoppingBag,
+    permission: canAccessAdmin,
+    children: [
+      { title: "Special Days", href: "/admin/special-days", icon: Calendar },
+    ],
+  },
+  {
+    type: "group",
     title: "Sales",
     icon: DollarSign,
     permission: canAccessAdmin,
@@ -113,6 +123,7 @@ const navEntries: NavEntry[] = [
       { title: "Sales Reports", href: "/admin/reports", icon: BarChart3 },
     ],
   },
+
   {
     type: "group",
     title: "System Logs",
