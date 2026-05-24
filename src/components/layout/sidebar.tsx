@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid,
@@ -139,6 +140,12 @@ export function Sidebar() {
   const dispatch = useAppDispatch();
   const { sidebarCollapsed, mobileMenuOpen } = useAppSelector((state) => state.ui);
   const currentRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const settingsEntry = {
     title: "Settings",
@@ -346,13 +353,17 @@ export function Sidebar() {
                     <Coffee className="h-6 w-6 text-primary-foreground" />
                   </div>
                 ) : (
-                  <div className="flex h-14 items-center rounded-lg bg-zinc-900 px-2 dark:bg-transparent dark:px-0">
-                    <img
-                      src="/logo.jpg"
-                      alt="Caffissimo"
-                      className="h-12 w-auto max-w-[160px] object-contain object-left"
-                      onError={() => setLogoError(true)}
-                    />
+                  <div className="flex h-14 items-center rounded-lg px-2 dark:px-0">
+                    {mounted ? (
+                      <img
+                        src={resolvedTheme === "dark" ? "/logo/logo-dark-theme.png" : "/logo/logo-light-theme.png"}
+                        alt="Caffissimo"
+                        className="h-12 w-36 object-contain object-left"
+                        onError={() => setLogoError(true)}
+                      />
+                    ) : (
+                      <div className="h-12 w-32" />
+                    )}
                   </div>
                 )}
               </div>

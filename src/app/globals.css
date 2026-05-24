@@ -1,5 +1,5 @@
 @import "tailwindcss";
-
+@custom-variant dark (&:is(.dark *));
 /* Light theme — bg:#FFFFFF, card:#FFFFFF, sidebar:#F6F6F6, accent:#099699 */
 :root {
   --background: 0 0% 100%;
