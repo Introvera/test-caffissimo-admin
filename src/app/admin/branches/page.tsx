@@ -22,10 +22,11 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/shared/page-header";
 import { useAppSelector } from "@/stores/store";
-import { useGetBranchesQuery } from "@/stores/api/branchApi";
+import { useGetBranchesQuery, useUpdateBranchMutation } from "@/stores/api/branchApi";
 import { canManageBranch, canAccessAllBranches, canCreateBranch } from "@/lib/rbac";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Branch, UserRole, DayOfWeek } from "@/types";
+import { Branch } from "@/types";
+import { toast } from "sonner";
 
 export default function BranchesPage() {
   const currentRole = useAppSelector((state) => state.auth.user?.role);
@@ -40,6 +41,22 @@ export default function BranchesPage() {
     pageSize,
     search: searchTerm || undefined,
   });
+
+  const [updateBranch, { isLoading: isUpdating }] = useUpdateBranchMutation();
+
+  const handleToggleOpen = async (branchId: string, currentOpenStatus: boolean) => {
+    try {
+      await updateBranch({
+        id: branchId,
+        data: { isOpen: !currentOpenStatus },
+      }).unwrap();
+      toast.success(`Branch ${!currentOpenStatus ? "opened" : "closed"} successfully`);
+    } catch (error) {
+      console.error("Failed to toggle branch status:", error);
+      const message = (error as { data?: { message?: string } })?.data?.message || "Failed to update branch status";
+      toast.error(message);
+    }
+  };
 
   const branches = data?.items || [];
   const totalPages = data?.totalPages || 1;
@@ -131,7 +148,11 @@ export default function BranchesPage() {
                         </div>
                       </div>
                       {canManage && (
-                        <Switch checked={branch.isOpen} />
+                        <Switch
+                          checked={branch.isOpen}
+                          disabled={isUpdating}
+                          onCheckedChange={() => handleToggleOpen(branch.branchId, branch.isOpen)}
+                        />
                       )}
                     </div>
                   </CardHeader>
