@@ -111,7 +111,9 @@ function SortIcon({ header }: { header: Header<User, unknown> }) {
 }
 
 export default function UsersPage() {
-  const { currentRole, selectedBranchId, assignedBranchId } = useAppSelector((state) => state.ui);
+  const { currentRole: uiRole, selectedBranchId, assignedBranchId } = useAppSelector((state) => state.ui);
+  const authRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const currentRole = uiRole || authRole;
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");

@@ -13,6 +13,8 @@ export type Role = UserRole;
 export interface User {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   role: Role;
   branchId?: string;

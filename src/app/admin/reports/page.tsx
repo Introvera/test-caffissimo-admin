@@ -43,13 +43,15 @@ import { useAppSelector } from "@/stores/store";
 import { canAccessAdmin } from "@/lib/rbac";
 import { useGetBranchesQuery } from "@/stores/api/branchApi";
 import { useLazyGetOrdersQuery } from "@/stores/api/orderApi";
-import { OrderSummaryResponse } from "@/types";
+import { OrderSummaryResponse, UserRole } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export default function ReportsPage() {
-  const { dateRange, selectedBranchId, currentRole } = useAppSelector((state) => state.ui);
+  const { dateRange, selectedBranchId, currentRole: uiRole } = useAppSelector((state) => state.ui);
+  const authRole = useAppSelector((state) => state.auth.user?.role) || UserRole.Cashier;
+  const currentRole = uiRole || authRole;
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [dailyPage, setDailyPage] = useState(0);
