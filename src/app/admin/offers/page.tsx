@@ -31,10 +31,10 @@ const OFFER_TYPE_LABELS: Record<OfferType, string> = {
 };
 
 const OFFER_TYPE_COLORS: Record<OfferType, string> = {
-  AmountOff: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  PercentageOff: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  FixedPrice: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  BuyXGetY: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  AmountOff: "bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200",
+  PercentageOff: "bg-purple-100 text-purple-900 dark:bg-purple-950/40 dark:text-purple-200",
+  FixedPrice: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200",
+  BuyXGetY: "bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200",
 };
 
 export default function OffersPage() {
