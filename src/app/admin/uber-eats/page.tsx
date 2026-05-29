@@ -8,8 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  DollarSign,
   Edit,
   Eye,
+  EyeOff,
   Loader2,
   Package,
   Plus,
@@ -20,6 +22,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { KPICard } from "@/components/shared/kpi-card";
 import { PageHeader } from "@/components/shared/page-header";
@@ -69,6 +72,8 @@ import {
   useGetUberMenusQuery,
   useSyncUberMenuMutation,
   useUpdateUberMenuMutation,
+  useUpdateItemAvailabilityMutation,
+  useUpdateItemPriceMutation,
 } from "@/stores/api/uberApi";
 import { setSelectedBranchId as setGlobalSelectedBranchId } from "@/stores/slices/uiSlice";
 import { useAppDispatch, useAppSelector } from "@/stores/store";
@@ -1226,17 +1231,11 @@ export default function UberEatsPage() {
                           {viewingMenuDetail.branchProductIds.length} products assigned.
                           Toppings and size variants are included automatically when synced to Uber.
                         </p>
-                        <div className="space-y-1">
-                          {viewingMenuDetail.branchProductIds.map((bpId) => (
-                            <div
-                              key={bpId}
-                              className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-sm"
-                            >
-                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-mono text-xs truncate">{bpId}</span>
-                            </div>
-                          ))}
-                        </div>
+                        <MenuProductsList
+                          branchProductIds={viewingMenuDetail.branchProductIds}
+                          branchProducts={branchProducts}
+                          branchId={viewingMenuDetail.branchId}
+                        />
                       </div>
                     )}
                   </div>
@@ -1270,6 +1269,132 @@ export default function UberEatsPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function MenuProductsList({
+  branchProductIds,
+  branchProducts,
+  branchId,
+}: {
+  branchProductIds: string[];
+  branchProducts: BranchProductCatalogItem[];
+  branchId: string;
+}) {
+  const [updateAvailability, { isLoading: isToggling }] = useUpdateItemAvailabilityMutation();
+  const [updatePrice, { isLoading: isPricing }] = useUpdateItemPriceMutation();
+  const [editingPrice, setEditingPrice] = useState<{ bpId: string; cents: string } | null>(null);
+
+  const productMap = useMemo(() => {
+    const map = new Map<string, BranchProductCatalogItem>();
+    for (const bp of branchProducts) map.set(bp.branchProductId, bp);
+    return map;
+  }, [branchProducts]);
+
+  const handleToggleStock = async (bpId: string, currentlyAvailable: boolean) => {
+    try {
+      await updateAvailability({
+        branchProductId: bpId,
+        branchId,
+        data: { isAvailable: !currentlyAvailable },
+      }).unwrap();
+      toast.success(!currentlyAvailable ? "Item marked available on Uber" : "Item suspended on Uber");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update availability");
+    }
+  };
+
+  const handleUpdatePrice = async (bpId: string) => {
+    if (!editingPrice || editingPrice.bpId !== bpId) return;
+    const cents = parseInt(editingPrice.cents, 10);
+    if (isNaN(cents) || cents < 0) {
+      toast.error("Enter a valid price in cents");
+      return;
+    }
+    try {
+      await updatePrice({
+        branchProductId: bpId,
+        branchId,
+        data: { priceInCents: cents },
+      }).unwrap();
+      toast.success(`Price updated to ${(cents / 100).toFixed(2)} on Uber`);
+      setEditingPrice(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to update price");
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      {branchProductIds.map((bpId) => {
+        const product = productMap.get(bpId);
+        const name = product?.productName ?? "Unknown Product";
+        const price = product?.variants?.[0]?.price;
+        const isAvailable = product?.isAvailable ?? true;
+
+        return (
+          <div
+            key={bpId}
+            className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Package className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="min-w-0">
+                <p className="font-medium truncate">{name}</p>
+                <p className="text-xs text-muted-foreground font-mono truncate">{bpId}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {price != null && (
+                <span className="text-xs text-muted-foreground mr-1">
+                  ${price.toFixed(2)}
+                </span>
+              )}
+
+              {editingPrice?.bpId === bpId ? (
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="w-20 h-7 text-xs"
+                    placeholder="cents"
+                    value={editingPrice.cents}
+                    onChange={(e) => setEditingPrice({ bpId, cents: e.target.value })}
+                    onKeyDown={(e) => e.key === "Enter" && handleUpdatePrice(bpId)}
+                    autoFocus
+                  />
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => handleUpdatePrice(bpId)} disabled={isPricing}>
+                    OK
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingPrice(null)}>
+                    <XCircle className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2"
+                  title="Update price on Uber"
+                  onClick={() => setEditingPrice({ bpId, cents: price != null ? String(Math.round(price * 100)) : "" })}
+                >
+                  <DollarSign className="h-3 w-3" />
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn("h-7 px-2", !isAvailable && "text-destructive")}
+                title={isAvailable ? "Suspend on Uber" : "Unsuspend on Uber"}
+                onClick={() => handleToggleStock(bpId, isAvailable)}
+                disabled={isToggling}
+              >
+                {isAvailable ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              </Button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

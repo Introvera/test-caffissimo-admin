@@ -31,6 +31,7 @@ import {
   Cable,
   Store,
   Truck,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -122,6 +123,7 @@ const navEntries: NavEntry[] = [
     children: [
       { title: "Uber Eats Menus", href: "/admin/uber-eats", icon: Store },
       { title: "Uber Eats Orders", href: "/admin/uber-eats/orders", icon: Truck },
+      { title: "Uber Promotions", href: "/admin/uber-eats/promotions", icon: Megaphone },
     ],
   },
   {
