@@ -197,9 +197,7 @@ function mapMenuDetailToForm(menu: UberMenu): MenuFormState {
     currencyCode: menu.currencyCode ?? "AUD",
     menuType: menu.menuType,
     isActive: menu.isActive,
-    branchProductIds: menu.items
-      .map((item) => item.branchProductId)
-      .filter((id): id is string => Boolean(id)),
+    branchProductIds: menu.branchProductIds ?? [],
     serviceAvailabilities:
       menu.serviceAvailabilities.length > 0
         ? menu.serviceAvailabilities.map((availability) => ({
@@ -499,7 +497,6 @@ export default function UberEatsPage() {
       currencyCode: menuForm.currencyCode.trim().toUpperCase() || "AUD",
       menuType: menuForm.menuType,
       branchProductIds: menuForm.branchProductIds,
-      itemCustomizations: [],
       serviceAvailabilities: menuForm.serviceAvailabilities,
     };
 
@@ -1179,24 +1176,15 @@ export default function UberEatsPage() {
                   <p className="mt-1 font-medium">{viewingMenuDetail.menuType}</p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Items</p>
+                  <p className="text-xs text-muted-foreground">Products</p>
                   <p className="mt-1 font-medium">
-                    {viewingMenuDetail.items.length}
+                    {viewingMenuDetail.branchProductIds.length}
                   </p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Categories</p>
-                  <p className="mt-1 font-medium">
-                    {viewingMenuDetail.categories.length}
-                  </p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Modifiers</p>
-                  <p className="mt-1 font-medium">
-                    {viewingMenuDetail.modifierGroups.reduce(
-                      (count, group) => count + group.modifiers.length,
-                      0,
-                    )}
+                  <p className="text-xs text-muted-foreground">Sync Hash</p>
+                  <p className="mt-1 font-mono text-xs truncate" title={viewingMenuDetail.lastSyncPayloadHash ?? "Not synced"}>
+                    {viewingMenuDetail.lastSyncPayloadHash?.slice(0, 12) ?? "—"}
                   </p>
                 </div>
               </div>
@@ -1224,103 +1212,31 @@ export default function UberEatsPage() {
                         </Badge>
                       </div>
                     </div>
-                    {viewingMenuDetail.items.length === 0 ? (
+                    {viewingMenuDetail.branchProductIds.length === 0 ? (
                       <div className="p-8">
                         <EmptyState
                           icon={Package}
-                          title="No items"
-                          description="This menu has no mapped products"
+                          title="No products"
+                          description="This menu has no assigned products"
                         />
                       </div>
                     ) : (
-                      <div className="max-h-[420px] overflow-y-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Item</TableHead>
-                              <TableHead>Price</TableHead>
-                              <TableHead>Reference</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {viewingMenuDetail.items.map((item) => (
-                              <TableRow key={item.uberMenuItemId}>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">
-                                      {item.displayName}
-                                    </p>
-                                    <p className="max-w-[360px] truncate text-xs text-muted-foreground">
-                                      {item.description || item.branchProductId}
-                                    </p>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {formatMoney(
-                                    item.price,
-                                    viewingMenuDetail.currencyCode,
-                                  )}
-                                </TableCell>
-                                <TableCell className="font-mono text-xs">
-                                  {item.externalReferenceId || "-"}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-lg border">
-                    <div className="border-b p-3">
-                      <p className="font-medium">Modifier Groups</p>
-                    </div>
-                    {viewingMenuDetail.modifierGroups.length === 0 ? (
-                      <div className="p-6 text-sm text-muted-foreground">
-                        No modifiers
-                      </div>
-                    ) : (
-                      <div className="grid gap-3 p-3 md:grid-cols-2">
-                        {viewingMenuDetail.modifierGroups.map((group) => (
-                          <div
-                            key={group.uberMenuModifierGroupId}
-                            className="rounded-lg border p-3"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="font-medium">{group.displayName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {group.minSelections}-{group.maxSelections}{" "}
-                                  selections
-                                </p>
-                              </div>
-                              <Badge
-                                variant={group.isRequired ? "warning" : "secondary"}
-                              >
-                                {group.isRequired ? "Required" : "Optional"}
-                              </Badge>
+                      <div className="max-h-[420px] overflow-y-auto p-3">
+                        <p className="mb-2 text-xs text-muted-foreground">
+                          {viewingMenuDetail.branchProductIds.length} products assigned.
+                          Toppings and size variants are included automatically when synced to Uber.
+                        </p>
+                        <div className="space-y-1">
+                          {viewingMenuDetail.branchProductIds.map((bpId) => (
+                            <div
+                              key={bpId}
+                              className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-sm"
+                            >
+                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="font-mono text-xs truncate">{bpId}</span>
                             </div>
-                            <div className="mt-3 space-y-2">
-                              {group.modifiers.map((modifier) => (
-                                <div
-                                  key={modifier.uberMenuModifierId}
-                                  className="flex items-center justify-between gap-3 text-sm"
-                                >
-                                  <span className="truncate">
-                                    {modifier.displayName}
-                                  </span>
-                                  <span className="font-medium">
-                                    {formatMoney(
-                                      modifier.price,
-                                      viewingMenuDetail.currencyCode,
-                                    )}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1348,27 +1264,6 @@ export default function UberEatsPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border">
-                    <div className="border-b p-3">
-                      <p className="font-medium">Categories</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 p-3">
-                      {viewingMenuDetail.categories.length === 0 ? (
-                        <span className="text-sm text-muted-foreground">
-                          No categories
-                        </span>
-                      ) : (
-                        viewingMenuDetail.categories.map((category) => (
-                          <Badge
-                            key={category.uberMenuCategoryId}
-                            variant="secondary"
-                          >
-                            {category.displayName}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

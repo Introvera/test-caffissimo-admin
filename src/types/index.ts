@@ -262,66 +262,6 @@ export interface UberMenuAvailability {
   closeAt: string;
 }
 
-export interface UberMenuItemCustomization {
-  branchProductId: string;
-  modifiers: UberMenuModifierCustomization[];
-}
-
-export interface UberMenuModifierCustomization {
-  toppingId: string;
-  overridePrice?: number;
-}
-
-export interface UberMenuItem {
-  uberMenuItemId: string;
-  branchProductId: string;
-  productId: string;
-  productCategoryId: string;
-  displayName: string;
-  description?: string;
-  price: number;
-  imageUrl?: string;
-  externalItemId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-  modifierGroupIds: string[];
-}
-
-export interface UberMenuCategory {
-  uberMenuCategoryId: string;
-  productCategoryId: string;
-  displayName: string;
-  externalCategoryId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-}
-
-export interface UberMenuModifier {
-  uberMenuModifierId: string;
-  toppingId: string;
-  branchToppingId?: string;
-  displayName: string;
-  price: number;
-  imageUrl?: string;
-  externalModifierId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-}
-
-export interface UberMenuModifierGroup {
-  uberMenuModifierGroupId: string;
-  branchProductId: string;
-  toppingCategoryId: string;
-  displayName: string;
-  minSelections: number;
-  maxSelections: number;
-  isRequired: boolean;
-  externalModifierGroupId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-  modifiers: UberMenuModifier[];
-}
-
 export interface UberMenuSummary {
   uberMenuId: string;
   platformConnectionId: string;
@@ -339,10 +279,9 @@ export interface UberMenu extends UberMenuSummary {
   description?: string;
   currencyCode?: string;
   externalReferenceId?: string;
+  lastSyncPayloadHash?: string;
+  branchProductIds: string[];
   serviceAvailabilities: UberMenuAvailability[];
-  categories: UberMenuCategory[];
-  items: UberMenuItem[];
-  modifierGroups: UberMenuModifierGroup[];
 }
 
 export interface CreateUberMenuRequest {
@@ -354,7 +293,6 @@ export interface CreateUberMenuRequest {
   currencyCode?: string;
   menuType: UberMenuType;
   branchProductIds: string[];
-  itemCustomizations: UberMenuItemCustomization[];
   serviceAvailabilities: UberMenuAvailability[];
 }
 
@@ -434,6 +372,7 @@ export interface UberOrderStagingItem {
   uberOrderStagingItemId: string;
   uberItemId: string;
   branchProductId: string | null;
+  branchProductVariantId: string | null;
   productId: string | null;
   instanceId: string | null;
   title: string;
@@ -442,18 +381,6 @@ export interface UberOrderStagingItem {
   totalPrice: number;
   specialInstructions: string | null;
   modifiers: UberOrderStagingItemModifier[];
-}
-
-export interface UberOrderStagingPromotion {
-  uberOrderStagingPromotionId: string;
-  promotionUuid: string | null;
-  externalPromotionId: string | null;
-  promoType: string;
-  discountValue: number;
-  discountPercentage: number;
-  deliveryFeeValue: number;
-  merchantFundedAmount: number;
-  uberFundedAmount: number;
 }
 
 export interface UberOrderStagingDetail {
@@ -503,7 +430,6 @@ export interface UberOrderStagingDetail {
   updatedAt: string | null;
   lastSyncError: string | null;
   items: UberOrderStagingItem[];
-  promotions: UberOrderStagingPromotion[];
 }
 
 export interface UberOrderActionResult {
@@ -958,119 +884,6 @@ export interface UpdateBranchProductRequest {
   overrideEcomImages?: string[];
 }
 
-// ============== BACKEND-ALIGNED: UBER MENUS ==============
-// UberMenuType, SyncStatus, PlatformCode declared above
-
-export interface UberMenuAvailabilityResponse {
-  uberMenuAvailabilityId: string;
-  dayOfWeek: number;
-  openAt: string;
-  closeAt: string;
-}
-
-export interface UberMenuModifierResponse {
-  uberMenuModifierId: string;
-  toppingId: string;
-  branchToppingId?: string;
-  displayName: string;
-  price: number;
-  imageUrl?: string;
-  externalModifierId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-}
-
-export interface UberMenuModifierGroupResponse {
-  uberMenuModifierGroupId: string;
-  branchProductId: string;
-  toppingCategoryId: string;
-  displayName: string;
-  minSelections: number;
-  maxSelections: number;
-  isRequired: boolean;
-  externalModifierGroupId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-  modifiers: UberMenuModifierResponse[];
-}
-
-export interface UberMenuItemResponse {
-  uberMenuItemId: string;
-  branchProductId: string;
-  productId: string;
-  productCategoryId: string;
-  displayName: string;
-  description?: string;
-  price: number;
-  imageUrl?: string;
-  externalItemId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-  modifierGroupIds: string[];
-}
-
-export interface UberMenuCategoryResponse {
-  uberMenuCategoryId: string;
-  productCategoryId: string;
-  displayName: string;
-  externalCategoryId?: string;
-  externalReferenceId?: string;
-  sortOrder: number;
-}
-
-export interface UberMenuResponse {
-  uberMenuId: string;
-  platformConnectionId: string;
-  branchId: string;
-  localMenuCode: string;
-  menuName: string;
-  description?: string;
-  currencyCode?: string;
-  menuType: UberMenuType;
-  externalMenuId?: string;
-  externalReferenceId?: string;
-  lastSyncedAt?: string;
-  lastSyncStatus?: SyncStatus;
-  isActive: boolean;
-  serviceAvailabilities: UberMenuAvailabilityResponse[];
-  categories: UberMenuCategoryResponse[];
-  items: UberMenuItemResponse[];
-  modifierGroups: UberMenuModifierGroupResponse[];
-}
-
-export type UberMenuSummaryResponse = Pick<
-  UberMenuResponse,
-  | "uberMenuId" | "platformConnectionId" | "branchId" | "localMenuCode"
-  | "menuName" | "menuType" | "externalMenuId" | "lastSyncedAt"
-  | "lastSyncStatus" | "isActive"
->;
-
-export interface UberMenuSyncResponse {
-  uberMenuId: string;
-  platformConnectionId: string;
-  externalMenuId?: string;
-  syncStatus: SyncStatus;
-  syncedAt: string;
-  message: string;
-  success?: boolean;
-}
-
-export interface UberMenuAvailabilityRequest {
-  dayOfWeek: number;
-  openAt: string;
-  closeAt: string;
-}
-
-export interface UberMenuItemCustomizationRequest {
-  branchProductId: string;
-  displayName?: string;
-  description?: string;
-  price?: number;
-  imageUrl?: string;
-  sortOrder?: number;
-}
-
-// CreateUberMenuRequest, UpdateUberMenuRequest declared above
 
 // ============== FIREBASE USER: REQUEST TYPES ==============
 export interface CreateFirebaseUserRequest {
