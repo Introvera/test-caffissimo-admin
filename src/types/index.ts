@@ -441,6 +441,40 @@ export interface UberOrderActionResult {
   currentState: string | null;
 }
 
+// Uber Promotions (Uber API managed)
+export interface CreateUberPromotionRequest {
+  promoType: string;
+  title?: string;
+  discountPercentage?: number;
+  discountAmount?: number;
+  minOrderAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  eligibleItemIds?: string[];
+}
+
+export interface UberPromotionResponse {
+  promotionId: string | null;
+  promoType: string;
+  title: string | null;
+  discountPercentage: number | null;
+  discountAmount: number | null;
+  minOrderAmount: number | null;
+  status: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  rawJson: string | null;
+}
+
+// Uber Menu Item Partial Updates
+export interface UpdateItemAvailabilityRequest {
+  isAvailable: boolean;
+}
+
+export interface UpdateItemPriceRequest {
+  priceInCents: number;
+}
+
 export type OfferType =
   | "FlatDiscount"
   | "PercentageDiscount"
