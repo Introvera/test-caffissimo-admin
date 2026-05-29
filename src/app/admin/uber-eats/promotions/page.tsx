@@ -133,14 +133,6 @@ export default function UberPromotionsPage() {
     }
   };
 
-  if (!branchId) {
-    return (
-      <div className="p-6">
-        <p className="text-muted-foreground">Please select a branch to manage Uber promotions.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -176,7 +168,17 @@ export default function UberPromotionsPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {!branchId ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Tag className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <p className="font-medium">Select a branch</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Choose a branch from the dropdown above to manage its Uber Eats promotions
+            </p>
+          </CardContent>
+        </Card>
+      ) : isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
