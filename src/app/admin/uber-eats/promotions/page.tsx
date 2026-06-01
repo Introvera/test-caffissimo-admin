@@ -82,10 +82,11 @@ export default function UberPromotionsPage() {
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const branchId = selectedBranchId || assignedBranchId || "";
 
-  const { data, isLoading, isFetching, refetch } = useGetUberPromotionsQuery(
+  const { data, isLoading, isFetching, refetch, error: fetchError } = useGetUberPromotionsQuery(
     { branchId },
     { skip: !branchId }
   );
+  const apiNotAvailable = !!(fetchError && "status" in fetchError && (fetchError.status === 409 || fetchError.status === 404));
   const [createPromotion, { isLoading: isCreating }] = useCreateUberPromotionMutation();
   const [deletePromotion] = useDeleteUberPromotionMutation();
 
@@ -161,7 +162,7 @@ export default function UberPromotionsPage() {
             <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => setShowCreate(true)} disabled={!branchId}>
+          <Button size="sm" onClick={() => setShowCreate(true)} disabled={!branchId || apiNotAvailable}>
             <Plus className="h-4 w-4 mr-1" />
             Create Promotion
           </Button>
@@ -175,6 +176,24 @@ export default function UberPromotionsPage() {
             <p className="font-medium">Select a branch</p>
             <p className="text-sm text-muted-foreground mt-1">
               Choose a branch from the dropdown above to manage its Uber Eats promotions
+            </p>
+          </CardContent>
+        </Card>
+      ) : apiNotAvailable ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Tag className="h-10 w-10 mx-auto text-yellow-500 mb-3" />
+            <p className="font-medium">Promotions API Not Available</p>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              The Uber Eats Promotions API requires separate approval from Uber.
+              Contact your Uber partner manager to enable promotions access for your account.
+            </p>
+            <p className="text-xs text-muted-foreground mt-3">
+              In the meantime, you can create promotions directly from the{" "}
+              <a href="https://merchants.ubereats.com" target="_blank" rel="noopener noreferrer" className="underline">
+                Uber Eats Manager portal
+              </a>
+              {" "}under the Marketing tab.
             </p>
           </CardContent>
         </Card>
